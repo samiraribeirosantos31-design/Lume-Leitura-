@@ -1,0 +1,6 @@
+{
+  "appId": "com.lume.leitura",
+  "appName": "Lume Leitura",
+  "webDir": "www",
+  "android": { "backgroundColor": "#F1F3F7" }
+}
