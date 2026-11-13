@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lume Leitura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style2.css">
+<link rel="stylesheet" href="extra.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 2.5c.6 3 4.2 5 4.2 9.6a4.2 4.2 0 0 1-8.4 0c0-1.6.6-2.8 1.5-3.8.2 1.1.8 1.8 1.6 2C10.7 7.6 10.9 5 12 2.5Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.8 5.9 6.2.8-4.6 4.3 1.2 6.3L12 17.3 6.4 20.3l1.2-6.3L3 9.7l6.2-.8L12 3Z"/></symbol>
+  <symbol id="i-today" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-books" viewBox="0 0 24 24"><rect x="4" y="4" width="4.5" height="16" rx="1"/><rect x="10" y="4" width="4.5" height="16" rx="1"/><path d="M16 6.5l3.4-.9 3 12.9-3.4.9Z"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z"/><path d="M8 6H5v1.5A3 3 0 0 0 8 10.5"/><path d="M16 6h3v1.5a3 3 0 0 1-3 3"/><path d="M12 13v4"/><path d="M8.5 20h7"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3.5h8.5L18.5 7.5v13H6Z"/><path d="M14 3.5v4.5h4.5M9 12h6M9 15.5h6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10.5 5 8 4.5 4.5 4.5V18c3.5 0 6 .5 7.5 2 1.5-1.5 4-2 7.5-2V4.5C16 4.5 13.5 5 12 6.5ZM12 6.5V20"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow" id="eyebrow"></p>
+      <h1 id="title">Hoje</h1>
+    </div>
+    <button class="icon-btn" data-act="settings" aria-label="Ajustes"><svg class="i" aria-hidden="true"><use href="#i-sliders"/></svg></button>
+  </header>
+  <main id="view" role="tabpanel"></main>
+</div>
+
+<nav class="tabs" aria-label="Seções">
+  <div class="tabs-in" role="tablist">
+    <button class="tab" role="tab" data-tab="today"><svg class="i" aria-hidden="true"><use href="#i-today"/></svg>Hoje</button>
+    <button class="tab" role="tab" data-tab="books"><svg class="i" aria-hidden="true"><use href="#i-books"/></svg>Livros</button>
+    <button class="tab" role="tab" data-tab="notes"><svg class="i" aria-hidden="true"><use href="#i-note"/></svg>Notas</button>
+    <button class="tab" role="tab" data-tab="ach"><svg class="i" aria-hidden="true"><use href="#i-trophy"/></svg>Conquistas</button>
+  </div>
+</nav>
+
+<div id="sheet-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="app1.js"></script>
+<script src="app2.js"></script>
+<script src="app3.js"></script>
+<script src="notas.js"></script>
+<script src="cronometro.js"></script>
+</body>
+</html>
+
