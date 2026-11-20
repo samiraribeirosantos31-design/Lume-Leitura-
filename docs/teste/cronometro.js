@@ -102,4 +102,3 @@ document.addEventListener('click',function(e){
 document.addEventListener('change',function(e){if(e.target.id==='tm-book')tmBook=e.target.value;});
 setInterval(function(){const el=$('#tm-disp');if(el&&S.timer)el.textContent=fmtT(tmMs());},500);
 render();
-

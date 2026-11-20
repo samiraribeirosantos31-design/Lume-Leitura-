@@ -8,11 +8,6 @@ function eyebrow(){
   if(tab==='books'){const n=S.books.length,d=S.books.filter(b=>b.done).length;return n+' '+pl(n,'livro','livros')+' · '+d+' '+pl(d,'concluído','concluídos');}
   const a=achs();return a.filter(x=>x.ok).length+' de '+a.length+' conquistas';
 }
-function demoBanner(){
-  if(!S.demo)return '';
-  if(ask==='clear')return '<div class="demo"><p>Apagar os livros e leituras de exemplo e começar do zero?</p><div class="row"><button class="btn btn-danger" data-act="wipe-yes">Apagar exemplos</button><button class="btn btn-ghost" data-act="ask-no">Cancelar</button></div></div>';
-  return '<div class="demo"><p>Você está vendo dados de exemplo. Registre leituras para testar e apague tudo quando quiser.</p><button class="btn btn-ghost" data-act="ask-clear">Começar do zero</button></div>';
-}
 function viewToday(){
   const mins=minutesOn(today()),pts=points(),st=stageOf(pts),sk=streak(),met=mins>=S.goal;
   const mood=met?'happy':(mins===0?'sleepy':'normal');
@@ -32,7 +27,7 @@ function viewToday(){
     return '<div class="col"><span class="v num">'+(x.min||'')+'</span><div class="b'+(x.min>=S.goal?' ok':'')+'" style="height:'+h+'px"></div></div>';
   }).join('');
   const days=w.map(x=>'<span class="'+(x.today?'t':'')+'">'+(x.today?'hoje':x.d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.',''))+'</span>').join('');
-  return demoBanner()
+  return ''
    +'<section class="pet-card"><div class="pet">'+pet(st,mood)+'</div><div><p class="eyebrow">Estágio '+(st+1)+' de 5</p>'
    +'<h2>'+esc(S.petName)+' <span class="stage">'+STAGES[st]+'</span></h2><p class="mood">'+msg+'</p>'
    +'<div class="xp" role="img" aria-label="'+esc(xpl)+'"><i style="width:'+Math.round(frac*100)+'%"></i></div><p class="xp-l num">'+xpl+'</p></div></section>'
@@ -77,4 +72,3 @@ function render(){
   $('#eyebrow').textContent=eyebrow();
   $('#view').innerHTML=tab==='today'?viewToday():tab==='books'?viewBooks():viewAch();
     }
-

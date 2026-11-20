@@ -2,6 +2,8 @@ name: Gerar APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -25,8 +27,26 @@ jobs:
           distribution: temurin
           java-version: 17
       - run: npm install
+      - name: Verificar integração e avisos
+        run: node --test tests/integracao.cjs
+      - name: Identificar esta versão
+        run: |
+          python3 scripts/versao-build.py
       - run: npx cap add android
-      - run: npx cap sync android
+      - name: Preparar ícones e versão Android
+        run: |
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+          bash scripts/icones.sh
+          python3 scripts/versao-android.py
+      - name: Preservar assinatura de teste entre builds
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: lume-debug-signing-v1
+      - name: Sincronizar arquivos do aplicativo
+        run: |
+          rm -f www/Lume-Leitura-novidades.zip
+          npx cap sync android
       - name: Gerar o APK
         working-directory: android
         run: |
@@ -37,10 +57,11 @@ jobs:
           name: lume-leitura-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
       - name: Publicar para download
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Lume Leitura (versão mais recente)"
-          body: "APK de teste do projeto acadêmico Lume Leitura. Consulte a página do projeto para as instruções de instalação."
+          name: Lume Leitura (versão mais recente)
+          body_path: release-notes.txt
           files: android/app/build/outputs/apk/debug/app-debug.apk
           fail_on_unmatched_files: true

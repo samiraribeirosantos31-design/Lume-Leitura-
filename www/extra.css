@@ -1,4 +1,4 @@
-.tabs-in{grid-template-columns:repeat(4,minmax(0,1fr))}
+.tabs-in{grid-template-columns:repeat(5,minmax(0,1fr))}
 .fchips{display:flex;flex-wrap:wrap;gap:8px}
 .fchips .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .notes-list{display:flex;flex-direction:column;gap:12px}
