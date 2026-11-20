@@ -77,4 +77,3 @@ function render(){
   $('#eyebrow').textContent=eyebrow();
   $('#view').innerHTML=tab==='today'?viewToday():tab==='books'?viewBooks():viewAch();
     }
-

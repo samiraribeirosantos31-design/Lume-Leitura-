@@ -58,4 +58,3 @@ svg.i.fill{fill:currentColor;stroke:none}
 .bob{animation:bob 3.2s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @media (max-width:359px){.pet-card{grid-template-columns:1fr;justify-items:center;text-align:center}.pet-card h2{justify-content:center}}
-

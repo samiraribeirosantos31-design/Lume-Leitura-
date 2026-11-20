@@ -24,7 +24,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function seed(){
   const now=new Date();
   const L=(back,bookId,min,pages,extra)=>({id:uid(),date:dkey(addDays(now,-back)),bookId:bookId,min:min,pages:pages,pts:min+pages+(extra||0)});
-  return {v:1,goal:20,petName:'Tinta',demo:true,seen:null,
+  return {v:1,goal:20,petName:'Mascote',demo:true,seen:null,
     books:[
       {id:'b1',title:'Dom Casmurro',author:'Machado de Assis',total:256,page:104,done:false},
       {id:'b2',title:'Iracema',author:'José de Alencar',total:160,page:160,done:true},
@@ -111,4 +111,3 @@ function pet(stage,mood){
   o+='</g></svg>';
   return o;
      }
-

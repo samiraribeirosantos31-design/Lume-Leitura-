@@ -99,7 +99,7 @@ function submitAdd(){
 function submitSettings(){
   const g=parseInt($('#f-goal').value,10),n=$('#f-name').value.trim();
   if(!(g>=5)||g>240)return fail('A meta deve ficar entre 5 e 240 minutos.');
-  S.goal=g;S.petName=n||'Tinta';save();closeSheet();render();toast(['Ajustes salvos']);
+  S.goal=g;S.petName=n||'Mascote';save();closeSheet();render();toast(['Ajustes salvos']);
 }
 function wipeData(){
   S.books=[];S.logs=[];S.demo=false;S.seen=[];ask=null;save();closeSheet();render();
