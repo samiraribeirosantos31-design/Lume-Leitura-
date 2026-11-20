@@ -8,8 +8,8 @@ O ZIP original é preservado. A versão principal não foi reescrita.
 
 - JavaScript clássico, na ordem de www/index.html.
 - Estado local na chave lume-leitura-v1. Não renomear essa chave.
-- Lilás padrão, cores, mascotes, avatar e Google Livros vêm do pacote original.
-- Firebase permanece sem configuração: login/sincronização não estão ativados.
+- O tema padrão é lilás. A aparência é salva pelo botão em Ajustes. Perfis com avatar humano passam para a coruja.
+- O modo visitante permanece local. O fluxo de conta exige configuração da equipe para ser ativado.
 - docs/index.html continua sendo a página de download.
 - docs/teste é a cópia da interface para GitHub Pages (main, pasta /docs).
   Ao editar www, sincronizar com: python3 scripts/sincronizar-web.py
@@ -49,13 +49,44 @@ O ZIP original é preservado. A versão principal não foi reescrita.
 
 Executar: node --test tests/integracao.cjs
 
-Sete testes cobrem carregamento dos scripts, lilás/avatar, Google Livros
-com resposta simulada, dados antigos, consulta de versões, notificação,
-destino fixo do toque, intervalo e modo offline.
+Os testes cobrem os módulos em conjunto, o tema inicial, os mascotes, a migração
+dos dados antigos, a estante com resposta simulada do Google Livros, o modo
+offline, o isolamento dos perfis, conflitos e notificações de versão.
 
-O navegador headless local não iniciou por restrição do ambiente. Ainda é
-necessário testar visualmente e instalar o APK no Android, incluindo permissão
-de notificações, toque, consulta real do Google Livros e atualização por cima.
+Antes de integrar, compare main novamente. A responsável pode ter enviado
+novos arquivos pelo Claude. Teste o APK num Android em primeira instalação e
+também atualizando um aparelho que já tem livros e notas.
 
-Antes de integrar, comparar main novamente: a responsável pode ter enviado
-novos arquivos pelo Claude. Não sobrescrever mudanças concorrentes.
+## Ativação pela equipe
+
+- No Google Cloud da equipe, ative a Books API e crie uma chave de cliente
+  restrita à API e às aplicações autorizadas. Preencha LUME_GOOGLE_BOOKS_KEY em
+  www/nuvem-config.js. Valide consulta, capas e importação no APK e na web.
+  A chave de cliente é pública. O cadastro manual funciona sem internet.
+- Crie ou selecione o projeto Firebase da equipe. Registre um app Web e copie
+  apiKey, authDomain, projectId e appId para NUVEM em www/nuvem-config.js.
+- Em Authentication, ative E-mail/senha. Em Firestore, crie o banco e publique
+  firestore.rules no projeto da equipe. Cada conta só acessa seu documento.
+- Para a versão web, autorize o domínio em Authentication. Ative Google para
+  usar google:true. Para Facebook, configure o provedor e o endereço de
+  retorno no Meta for Developers antes de usar facebook:true. Guarde o
+  segredo do Facebook no console do Firebase.
+- O login social no APK precisa de um fluxo nativo próprio e credenciais da
+  assinatura de distribuição. Os botões sociais desta proposta são para web.
+  Antes de publicar, valide também e-mail/senha no WebView do APK.
+- O perfil visitante continua em lume-leitura-v1. O perfil da conta usa a
+  mesma base, com o UID no final. Para transferir o progresso local, exporte
+  um backup antes de entrar e restaure na conta de destino, se desejar
+  substituir seus dados. Em conflito entre aparelhos, preserve ambos os
+  backups antes de escolher uma versão.
+- Rode python3 scripts/sincronizar-web.py após alterar a configuração.
+  Valide login, logout, troca de conta, recuperação de senha e restauração
+  em outro aparelho antes de anunciar suporte à nuvem.
+
+## Quadro para a equipe e o Claude
+
+- Kanban: https://lume-leitura-kanban.natanaelribeir884401.chatgpt.site
+- Referência em JSON: https://lume-leitura-kanban.natanaelribeir884401.chatgpt.site/kanban.json
+
+Use o quadro como referência de prioridades e a proposta no GitHub como
+referência do código em revisão. O quadro tem acesso público de leitura.

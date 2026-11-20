@@ -51,3 +51,12 @@ a.btn{text-decoration:none;color:var(--ink)}
 .sem-l div{display:grid}.sem-l span{font-size:13px;color:var(--ink-2)}
 .bob{animation-duration:4s}
 @media (prefers-reduced-motion:reduce){.bob{animation:none}}
+
+#guia{box-sizing:border-box;width:min(calc(100% - 2rem),420px);max-height:calc(100% - 2rem);padding:24px;border:1px solid var(--line);border-radius:24px;background:var(--surface);color:var(--ink);box-shadow:0 16px 55px #25183d3d}
+#guia::backdrop{background:#261a4566}
+#guia h2{font-size:1.45rem;margin:0 0 .5rem}
+#guia p{margin:.35rem 0 1rem}
+#guia .guia-contagem{font-weight:700;color:var(--pet-text);font-size:.85rem}
+.guia-passo{animation:guia-entrar .24s ease-out both}
+@keyframes guia-entrar{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.guia-passo{animation:none}}

@@ -33,7 +33,8 @@ function petBorboleta(stage,mood){
   }
   o+='<path d="M94 94Q100 99 106 94" '+stk('#FFFFFF',3)+'/>';
   if(stage>=3)o+='<circle cx="91" cy="82" r="10" '+stk('#FFFFFF',3)+'/><circle cx="109" cy="82" r="10" '+stk('#FFFFFF',3)+'/>';
-  if(stage>=4)o+='<path d="M80 62l5-16 15 11 15-11 5 16Z" fill="var(--accent)" stroke="var(--on-accent)" stroke-width="2" stroke-linejoin="round"/>';
+  if(stage===3)o+='<path d="M73 67L100 53L127 67L100 80Z" fill="var(--pet-deep)"/><path d="M122 69v15" stroke="#f8c54d" stroke-width="3"/>';
+  if(stage>=4)o+='<path d="M73 66L81 44L100 56L119 44L127 66Z" fill="#f8c54d" stroke="#704923" stroke-width="3"/>';
   return o+'</g></g></svg>';
 }
 function petOf(kind,stage,mood){

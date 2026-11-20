@@ -35,23 +35,25 @@ function applyTema(){
   let st=$('#tema-css');
   const t=temaAtual();
   if(!st){st=document.createElement('style');st.id='tema-css';document.head.appendChild(st);}
-  st.textContent=':root{'+vars(t,false)+'}@media (prefers-color-scheme:dark){:root{'+vars(t,true)+'}}';
+  st.textContent=':root{'+vars(t,false)+'}';
   const m=$('meta[name=theme-color]');
   if(m)m.setAttribute('content',t.p?H(t.h,50,56):H(t.h,t.s,t.al));
 }
+let lookDraft=null;
 const swColor=t=>t.p?H(t.h,75,80):H(t.h,t.as,t.al);
-const swBtn=t=>'<button type="button" class="sw" data-act="tema-set" data-v="'+t.id+'" aria-pressed="'+(temaAtual().id===t.id)+'" aria-label="'+t.n+'"><i style="background:'+swColor(t)+'"></i><span>'+t.n+'</span></button>';
+const swBtn=t=>'<button type="button" class="sw" data-act="tema-set" data-v="'+t.id+'" aria-pressed="'+((lookDraft?.tema||temaAtual().id)===t.id)+'" aria-label="'+t.n+'"><i style="background:'+swColor(t)+'"></i><span>'+t.n+'</span></button>';
 function lookHtml(){
-  const mc=S.mascote||'coruja';
+  const mc=lookDraft?.mascote||S.mascote||'coruja';
   return '<div class="look" id="look-zone"><label>Tons pastel</label><div class="swatches">'+TEMAS.filter(t=>t.p).map(swBtn).join('')
    +'</div><label>Cores vivas</label><div class="swatches">'+TEMAS.filter(t=>!t.p).map(swBtn).join('')
    +'</div><label>Mascote</label><div class="mascs">'
    +MASC.map(m=>'<button type="button" class="mc" data-act="masc-set" data-v="'+m[0]+'" aria-pressed="'+(mc===m[0])+'" aria-label="'+m[1]+'"><div class="mc-i">'
      +petOf(m[0],2,'normal').replace(/role="img" aria-label="[^"]*"/,'aria-hidden="true"')+'</div><span>'+m[1]+'</span></button>').join('')
-   +'</div>'+(mc==='avatar'?'<button class="btn btn-soft btn-block" type="button" data-act="av-open">Editar meu avatar</button>':'')+'</div>';
+   +'</div><button class="btn btn-primary btn-block" type="button" data-act="look-save">Salvar aparência</button></div>';
 }
 const _openSettings=openSettings;
 openSettings=function(){
+  lookDraft={tema:temaAtual().id,mascote:S.mascote||"coruja"};
   _openSettings();
   const z=$('#wipe-zone');if(z)z.insertAdjacentHTML('beforebegin',lookHtml());
 };
@@ -63,15 +65,23 @@ document.addEventListener('click',function(e){
   const h=e.target.closest('.pet-card h2');if(h){openNome();return;}
   const a=e.target.closest('[data-act]');if(!a)return;
   const act=a.dataset.act;
-  if(act!=='tema-set'&&act!=='masc-set')return;
-  if(act==='tema-set')S.tema=a.dataset.v;else S.mascote=a.dataset.v;
-  save();applyTema();
+  if(act==='look-save'&&lookDraft){
+    const antes={tema:S.tema,mascote:S.mascote};
+    S.tema=lookDraft.tema;
+    S.mascote=lookDraft.mascote;
+    if(!save()){Object.assign(S,antes);toast(['Não foi possível salvar a aparência']);return;}
+    applyTema();closeSheet();render();
+    toast(['Aparência salva']);
+    return;
+  }
+  if(!lookDraft||(act!=='tema-set'&&act!=='masc-set'))return;
+  if(act==='tema-set')lookDraft.tema=a.dataset.v;
+  else lookDraft.mascote=a.dataset.v;
   const z=$('#look-zone');if(z)z.outerHTML=lookHtml();
-  render();
 });
 document.addEventListener('submit',function(e){
   if(e.target.id!=='form-nome')return;
   S.petName=($('#nm-t').value||'').trim()||'Mascote';save();closeSheet();render();toast(['Nome salvo: '+S.petName]);
 });
-if(S.petName==='Tinta'){S.petName='Mascote';save();}
+if(S.mascote==='avatar'){S.mascote='coruja';save();}
 applyTema();

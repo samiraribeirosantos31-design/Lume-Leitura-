@@ -33,11 +33,13 @@ function harness(options={}){
  return {evaluate,click,elements,storage,scheduled,opened,callbacks,calls:()=>calls};
 }
 async function settle(){for(let i=0;i<20;i++)await Promise.resolve();}
-test('pacote completo carrega sem colisões; lilás e avatar preservados',async()=>{
+test('pacote completo carrega sem colisões; lilás inicial e apenas mascotes animais',async()=>{
  const h=harness();await settle();
  assert.equal(h.evaluate('temaAtual().id'),'lilas');
  assert.equal(h.evaluate('TEMAS.length'),17);
- assert.match(h.evaluate("petOf('avatar',2,'normal')"),/<svg/);
+ assert.equal(h.evaluate("MASC.some(([id])=>id==='avatar')"),false);
+ assert.equal(h.evaluate("petOf('avatar',2,'normal')===petOf('coruja',2,'normal')"),true);
+ assert.equal(h.evaluate("S.demo||S.books.length>0||S.logs.length>0"),false);
  assert.match(h.evaluate('viewToday()'),/Semáforo de ritmo/);
  assert.ok(h.evaluate('TABS.search'));
  assert.equal(h.evaluate('nvOk()'),false);
@@ -81,4 +83,40 @@ test('dados da primeira versão continuam sendo carregados',()=>{
  const h=harness({storage:[['lume-leitura-v1',JSON.stringify(old)]]});
  assert.equal(h.evaluate('S.books[0].title'),'Meu livro');
  assert.equal(h.evaluate('S.notes[0].text'),'Minha nota');
+});
+
+test('os marcos evoluem cedo e as conquistas obtidas são preservadas',()=>{
+ const h=harness();
+ assert.equal(h.evaluate('[0,15,60,160,350].map(stageOf).join()'),'0,1,2,3,4');
+ assert.equal(h.evaluate("petOf('coruja',2,'normal')!==petOf('coruja',4,'normal')"),true);
+ assert.equal(h.evaluate("S.seen=['s3'];achs().find(a=>a.id==='s3').ok"),true);
+});
+test('a aparência só é persistida ao salvar e migra o avatar antigo',async()=>{
+ const old={v:1,goal:20,petName:'Luz',demo:false,seen:[],books:[],logs:[],mascote:'avatar'};
+ const h=harness({storage:[['lume-leitura-v1',JSON.stringify(old)]]});
+ assert.equal(h.evaluate('S.mascote'),'coruja');
+ h.evaluate("lookDraft={tema:'menta',mascote:'coruja'}");
+ assert.equal(h.evaluate('temaAtual().id'),'lilas');
+ await h.click('look-save');
+ assert.equal(JSON.parse(h.storage.get('lume-leitura-v1')).tema,'menta');
+});
+test('o progresso do visitante e da conta é isolado, inclusive com conflito de revisão',async()=>{
+ const h=harness();
+ h.evaluate(`S.petName='Local';save();
+   FB={db:{collection:()=>({doc:()=>({get:async()=>({
+     exists:true,data:()=>({rev:1,dados:JSON.stringify({...emptyState(),petName:'Conta'})})
+   })})})}};
+ `);
+ await h.evaluate("trocarPerfil({uid:'abc'})");
+ assert.equal(h.evaluate('S.petName'),'Conta');
+ h.evaluate(`S.petName='Conta local';save();
+  FB.db.runTransaction=async fn=>fn({get:async()=>({exists:true,data:()=>({rev:2})}),
+    set:()=>{throw Error('tentou sobrescrever a nuvem');}});
+ `);
+ await h.evaluate('enviar()');
+ assert.match(h.evaluate('syncMsg'),/versão diferente/);
+ assert.equal(h.evaluate('perfil.pending'),true);
+ await h.evaluate('trocarPerfil(null)');
+ assert.equal(h.evaluate('S.petName'),'Local');
+ assert.equal(JSON.parse(h.storage.get('lume-leitura-v1:uid:abc')).petName,'Conta local');
 });

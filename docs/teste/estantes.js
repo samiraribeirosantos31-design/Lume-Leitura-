@@ -5,6 +5,7 @@ bookCard=function(b){
   const want=b.shelf==='want'&&!b.done;
   if(b.cover&&b.cover.indexOf('https://')===0)h=h.replace('<div class="book-top">','<div class="book-top"><img class="cv" src="'+esc(b.cover)+'" alt="" loading="lazy">');
   if(want)h=h.replace('Não iniciado','Quero ler');
+  if(b.desc||b.year)h=h.replace('<div class="book-meta', '<p class="muted">'+[b.year,b.desc].filter(Boolean).map(esc).join(' · ')+'</p><div class="book-meta');
   let extra='';
   if(want)extra+='<button class="btn btn-primary" data-act="bk-start" data-id="'+b.id+'">Começar a ler</button>';
   if(b.gid)extra+='<a class="btn btn-quiet" href="'+bkLink(b.gid)+'" target="_blank" rel="noopener">Amostra</a>';

@@ -54,7 +54,7 @@ function openSettings(){
    +'<label for="f-name">Nome do mascote</label><input id="f-name" type="text" maxlength="14" autocomplete="off" value="'+esc(S.petName)+'">'
    +'<p class="err" id="f-err" role="alert"></p>'
    +'<div class="row"><button class="btn btn-primary" type="submit">Salvar</button><button class="btn btn-ghost" type="button" data-act="close">Fechar</button></div></form>'
-   +'<div class="zone" id="wipe-zone"><p>Seus dados ficam guardados neste aparelho.</p><button class="btn btn-ghost" type="button" data-act="wipe">Apagar todos os dados</button></div>','f-goal');
+   +(S.demo?'<button class="btn btn-ghost btn-block" type="button" data-act="demo-limpar">Remover dados de demonstração</button>':'')+'<div class="zone" id="wipe-zone"><p>Seus dados ficam guardados neste aparelho.</p><button class="btn btn-ghost" type="button" data-act="wipe">Apagar todos os dados</button></div>','f-goal');
 }
 function curBook(){const el=$('#f-book');return el?S.books.find(b=>b.id===el.value):null;}
 function preview(){
@@ -80,7 +80,7 @@ function submitLog(){
   S.logs.push({id:uid(),date:today(),bookId:b.id,min:min,pages:c.pages,pts:c.pts});
   b.page=pg;if(c.fin)b.done=true;
   const stAfter=stageOf(points()),now=unlockedIds(),seen=S.seen||[],fresh=achs().filter(a=>a.ok&&seen.indexOf(a.id)<0);
-  S.seen=now;save();closeSheet();render();
+  if(!S.demo)S.seen=now;save();closeSheet();render();
   const lines=['+'+c.pts+' pontos'];
   if(c.goal)lines.push('Meta de hoje batida');
   if(c.fin)lines.push('Livro concluído: '+b.title);
@@ -101,8 +101,23 @@ function submitSettings(){
   if(!(g>=5)||g>240)return fail('A meta deve ficar entre 5 e 240 minutos.');
   S.goal=g;S.petName=n||'Mascote';save();closeSheet();render();toast(['Ajustes salvos']);
 }
+function limparDemonstracao(){
+  if(!S.demo)return;
+  const exemplos=seed();
+  const assinatura=l=>[l.bookId,l.min,l.pages,l.pts].join(':');
+  const iguais=exemplos.logs.every((l,i)=>S.logs[i]&&assinatura(l)===assinatura(S.logs[i]));
+  if(iguais)S.logs=S.logs.slice(exemplos.logs.length);
+  S.notes=S.notes.filter(n=>!n.demo);
+  if(iguais)S.books=S.books.filter(b=>{
+    const original=exemplos.books.find(l=>l.id===b.id);
+    const alterado=original&&Object.keys(original).some(k=>b[k]!==original[k]);
+    return !original||alterado||S.logs.some(l=>l.bookId===b.id)||S.notes.some(n=>n.bookId===b.id);
+  });
+  S.demo=false;S.seen=[];save();closeSheet();render();
+  toast([iguais?'Exemplos removidos':'Anotações de exemplo removidas. Leituras foram preservadas.']);
+}
 function wipeData(){
-  S.books=[];S.logs=[];S.demo=false;S.seen=[];ask=null;save();closeSheet();render();
+  S.books=[];S.logs=[];S.notes=[];S.timer=null;S.demo=false;S.seen=[];ask=null;save();closeSheet();render();
   toast(['Dados apagados. Comece adicionando um livro.']);
 }
 
@@ -122,9 +137,10 @@ document.addEventListener('click',function(e){
     case 'rm-yes':S.books=S.books.filter(b=>b.id!==id);ask=null;save();render();toast(['Livro removido']);break;
     case 'ask-clear':ask='clear';render();break;
     case 'ask-no':ask=null;render();break;
-    case 'wipe':$('#wipe-zone').innerHTML='<p>Isso apaga livros, leituras e pontos deste aparelho. A meta e o nome do mascote continuam.</p><div class="row"><button class="btn btn-danger" type="button" data-act="wipe-yes">Apagar tudo</button><button class="btn btn-ghost" type="button" data-act="wipe-no">Cancelar</button></div>';break;
+    case 'wipe':$('#wipe-zone').innerHTML='<p>Isso apaga livros, notas, leituras e pontos do perfil atual, inclusive na nuvem quando conectada. A meta e o nome do mascote continuam.</p><div class="row"><button class="btn btn-danger" type="button" data-act="wipe-yes">Apagar tudo</button><button class="btn btn-ghost" type="button" data-act="wipe-no">Cancelar</button></div>';break;
     case 'wipe-no':$('#wipe-zone').innerHTML='<p>Seus dados ficam guardados neste aparelho.</p><button class="btn btn-ghost" type="button" data-act="wipe">Apagar todos os dados</button>';break;
     case 'wipe-yes':wipeData();break;
+    case 'demo-limpar':limparDemonstracao();break;
   }
 });
 document.addEventListener('submit',function(e){
@@ -141,7 +157,7 @@ document.addEventListener('change',function(e){
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('.sheet'))closeSheet();});
 
 S=load();
-if(!S){S=seed();}
-if(!S.seen){S.seen=unlockedIds();}
+if(!S){S=emptyState();}
+if(!S.seen){S.seen=S.demo?[]:unlockedIds();}
 save();
 render();

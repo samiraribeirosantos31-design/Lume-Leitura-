@@ -1,7 +1,3 @@
-/* Configuração do login na nuvem (Firebase). Preencha com os dados do seu projeto. */
-window.NUVEM={
-  apiKey:'',
-  authDomain:'',
-  projectId:'',
-  appId:''
-};
+/* Configurações públicas do cliente. Nunca coloque senhas ou segredos aqui. */
+window.LUME_GOOGLE_BOOKS_KEY='';
+window.NUVEM={apiKey:'',authDomain:'',projectId:'',appId:'',google:false,facebook:false};

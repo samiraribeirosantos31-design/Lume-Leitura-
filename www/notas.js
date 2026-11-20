@@ -118,12 +118,6 @@ bookCard=function(b){
   const btn='<button class="btn btn-ghost" data-act="nt-open" data-id="'+b.id+'">Notas'+(c?' ('+c+')':'')+'</button>';
   return _bookCard(b).replace('<button class="btn btn-quiet"',btn+'<button class="btn btn-quiet"');
 };
-const _wipeData=wipeData;
-wipeData=function(){
-  S.notes=S.demo?S.notes.filter(n=>!n.demo):[];
-  S.timer=null;
-  _wipeData();
-};
 render=function(){
   $$('[data-tab]').forEach(b=>{const on=b.dataset.tab===tab;b.classList.toggle('on',on);b.setAttribute('aria-selected',String(on));});
   const t=TABS[tab]||TABS.today;

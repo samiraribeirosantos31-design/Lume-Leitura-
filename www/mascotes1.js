@@ -1,5 +1,5 @@
 /* Mascotes (parte 1): base comum e bichinhos de corpo redondo */
-const MASC=[['avatar','Eu (avatar)'],['coruja','Coruja'],['gato','Gato'],['cachorro','Cachorro'],['coelho','Coelho'],['panda','Panda'],['urso','Urso'],['raposa','Raposa'],['porquinho','Porquinho'],['pinguim','Pinguim'],['tigre','Tigre'],['leao','Leão'],['onca','Onça'],['borboleta','Borboleta']];
+const MASC=[['coruja','Coruja'],['gato','Gato'],['cachorro','Cachorro'],['coelho','Coelho'],['panda','Panda'],['urso','Urso'],['raposa','Raposa'],['porquinho','Porquinho'],['pinguim','Pinguim'],['tigre','Tigre'],['leao','Leão'],['onca','Onça'],['borboleta','Borboleta']];
 const _petCoruja=pet;
 const AN={};
 const spk=(x,y,s)=>'<path d="M0-9Q0 0 9 0Q0 0 0 9Q0 0-9 0Q0 0 0-9Z" transform="translate('+x+' '+y+') scale('+s+')" fill="var(--accent)"/>';
@@ -19,8 +19,10 @@ function petAnimal(kind,stage,mood){
   const c=AN[kind];
   let o=svgHead(stage);
   if(stage===4)o+=aura();
+  if(stage>=3)o+='<circle cx="100" cy="105" r="89" fill="var(--accent)" opacity=".23"/>';
   o+='<g class="bob"><ellipse cx="100" cy="182" rx="54" ry="8" fill="var(--shadow)"/>';
   o+='<g'+(stage===1?' transform="translate(100 182) scale(.82) translate(-100 -182)"':'')+'>';
+  if(stage>=3)o+='<path d="M48 119Q100 146 152 119L176 174Q100 192 24 174Z" fill="var(--pet-deep)"/>';
   o+=c.back(stage);
   o+='<ellipse cx="100" cy="116" rx="64" ry="60" fill="'+c.fur+'"/><ellipse cx="100" cy="140" rx="38" ry="32" fill="'+c.belly+'"/>';
   o+='<ellipse cx="74" cy="178" rx="15" ry="7" fill="'+c.feet+'"/><ellipse cx="126" cy="178" rx="15" ry="7" fill="'+c.feet+'"/>';
@@ -32,6 +34,7 @@ function petAnimal(kind,stage,mood){
   if(stage>=2)o+='<path d="M58 152Q80 144 100 154Q120 144 142 152L142 180Q120 172 100 182Q80 172 58 180Z" fill="var(--accent)"/>'
    +'<path d="M64 154Q82 148 98 156L98 175Q82 168 64 174Z" fill="var(--page)"/><path d="M136 154Q118 148 102 156L102 175Q118 168 136 174Z" fill="var(--page)"/>'
    +'<path d="M70 162Q82 158 92 162M70 168Q82 164 92 168M108 162Q118 158 130 162M108 168Q118 164 130 168" '+stk('var(--ink-3)',2)+'/>';
+  if(stage===3)o+='<path d="M75 64h50l-8-17H83Z" fill="var(--pet-deep)"/><path d="M67 63h66v6H67Z" fill="var(--accent)"/>';
   if(stage>=4)o+='<path d="M78 56l6-18 16 12 16-12 6 18Z" fill="var(--accent)" stroke="var(--on-accent)" stroke-width="2" stroke-linejoin="round"/>';
   return o+'</g></g></svg>';
 }
