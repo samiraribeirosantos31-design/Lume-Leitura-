@@ -18,16 +18,22 @@ function harness(options={}){
  let callbacks={},calls=0;
  const notifications={checkPermissions:async()=>({display:options.permission||'granted'}),requestPermissions:async()=>({display:options.permission||'granted'}),schedule:async n=>scheduled.push(...n.notifications),cancel:async()=>{},addListener:(event,cb)=>{callbacks[event]=cb;}};
  const ctx={document:doc,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},console,Date,Math,JSON,Number,String,Array,Object,Promise,AbortController,
-  setInterval(){},setTimeout:()=>1,clearTimeout(){},navigator:{},location:{protocol:'http:'},
+  setInterval(){},setTimeout:()=>1,clearTimeout(){},navigator:{onLine:!options.offline},location:{protocol:'http:'},
   addEventListener(){},scrollTo(){},open:u=>opened.push(u),
   fetch:async url=>{calls++;if(options.offline)throw Error('offline');
+   if(url.includes('googleapis.com/books')&&options.googleUnavailable)return {ok:false,status:429};
+   if(url.includes('openlibrary.org/search.json'))return {ok:true,json:async()=>({docs:[{key:'/works/OL123W',title:'O céu é violeta',author_name:['Autora'],cover_i:20,number_of_pages_median:120,first_publish_year:2021}]})};
+   if(url.includes('openlibrary.org/works/OL123W.json'))return {ok:true,json:async()=>({description:{value:'Resumo da edição'}})};
    if(url.includes('googleapis.com/books'))return {ok:true,json:async()=>({items:[{id:'test-volume',volumeInfo:{title:'Livro de teste',pageCount:100,authors:['Autora'],imageLinks:{thumbnail:'https://example.org/capa.png'}}}]})};
    return {ok:true,json:async()=>options.release||{body:'LUME_BUILD_CODE=111 LUME_VERSION=1.1.1',assets:[{name:'app-debug.apk'}]}};}
  };
  ctx.window=ctx;
  if(options.native)ctx.Capacitor={isNativePlatform:()=>true,Plugins:{LocalNotifications:notifications,Browser:{open:async({url})=>opened.push(url)}}};
  vm.createContext(ctx);
- files.forEach(f=>vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f}));
+ files.forEach(f=>{
+  vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f});
+  if(f==='nuvem-config.js'&&options.config)ctx.NUVEM=options.config;
+ });
  const evaluate=code=>vm.runInContext(code,ctx);
  const click=async act=>{const a={dataset:{act}};for(const f of events.click||[])await f({target:{closest:s=>s==='[data-act]'?a:null}});};
  return {evaluate,click,elements,storage,scheduled,opened,callbacks,calls:()=>calls};
@@ -119,4 +125,34 @@ test('o progresso do visitante e da conta é isolado, inclusive com conflito de 
  await h.evaluate('trocarPerfil(null)');
  assert.equal(h.evaluate('S.petName'),'Local');
  assert.equal(JSON.parse(h.storage.get('lume-leitura-v1:uid:abc')).petName,'Conta local');
+});
+
+test('busca recorre à Open Library e persiste o resumo no livro selecionado',async()=>{
+ const h=harness({googleUnavailable:true});
+ await h.evaluate("doSearch('O céu é violeta')");
+ assert.equal(h.evaluate('SQ.res[0].gid'),'ol:OL123W');
+ await h.evaluate("pickShelf(0,'want')");
+ assert.equal(h.evaluate('S.books[0].desc'),'Resumo da edição');
+ assert.match(h.evaluate('viewBooks()'),/O céu é violeta/);
+ assert.match(h.evaluate('viewBooks()'),/data-act="bk-details"/);
+});
+test('pesquisa offline encontra livros salvos e reconhece acentos',async()=>{
+ const old={v:1,goal:20,petName:'Luz',demo:false,seen:[],books:[{id:'b1',title:'O céu é violeta',total:100,page:5}],logs:[],notes:[]};
+ const h=harness({offline:true,storage:[['lume-leitura-v1',JSON.stringify(old)]]});
+ await h.evaluate("doSearch('ceu violeta')");
+ assert.equal(h.evaluate('SQ.res[0].localId'),'b1');
+ assert.match(h.evaluate('searchResults()'),/Resultados da sua estante/);
+ assert.doesNotMatch(h.evaluate('searchResults()'),/data-act="sq-add"/);
+});
+test('reabre a cópia do último perfil offline e marca as mudanças pendentes',()=>{
+ const key='lume-leitura-v1',account=key+':uid:abc';
+ const local={v:1,goal:20,petName:'Local',demo:false,seen:[],books:[],logs:[],notes:[]};
+ const h=harness({offline:true,config:{apiKey:'test',projectId:'test',appId:'test'},storage:[
+  [key,JSON.stringify(local)],[key+':active',account],[account,JSON.stringify({...local,petName:'Conta'})]
+ ]});
+ assert.equal(h.evaluate('S.petName'),'Conta');
+ h.evaluate("S.petName='Alteração offline';save();");
+ assert.equal(JSON.parse(h.storage.get(account)).petName,'Alteração offline');
+ assert.equal(JSON.parse(h.storage.get(key)).petName,'Local');
+ assert.equal(JSON.parse(h.storage.get(account+':sync')).pending,true);
 });

@@ -1,22 +1,86 @@
-/* Estantes: Lendo, Quero ler e Concluídos, capas e amostra */
-const _bookCard2=bookCard;
-bookCard=function(b){
-  let h=_bookCard2(b);
-  const want=b.shelf==='want'&&!b.done;
-  if(b.cover&&b.cover.indexOf('https://')===0)h=h.replace('<div class="book-top">','<div class="book-top"><img class="cv" src="'+esc(b.cover)+'" alt="" loading="lazy">');
-  if(want)h=h.replace('Não iniciado','Quero ler');
-  if(b.desc||b.year)h=h.replace('<div class="book-meta', '<p class="muted">'+[b.year,b.desc].filter(Boolean).map(esc).join(' · ')+'</p><div class="book-meta');
-  let extra='';
-  if(want)extra+='<button class="btn btn-primary" data-act="bk-start" data-id="'+b.id+'">Começar a ler</button>';
-  if(b.gid)extra+='<a class="btn btn-quiet" href="'+bkLink(b.gid)+'" target="_blank" rel="noopener">Amostra</a>';
-  return extra?h.replace('<button class="btn btn-quiet"',extra+'<button class="btn btn-quiet"'):h;
-};
+/* Capas da estante e detalhes do acompanhamento de leitura. */
+let shelfFilter='all';
+const shelfLabel=b=>b.done?'Concluídos':b.shelf==='want'?'Quero ler':'Lendo';
+let coverDB;
+const localCovers=new Map();
+function coverStore(){
+  if(!window.indexedDB)return Promise.resolve(null);
+  return coverDB||=(new Promise(resolve=>{
+    const req=indexedDB.open('lume-capas',1);
+    req.onupgradeneeded=()=>req.result.createObjectStore('images');
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=req.onblocked=()=>resolve(null);
+  }));
+}
+async function rememberCover(url){
+  const safe=httpsOnly(url);if(!safe||navigator.onLine===false)return;
+  try{
+    const db=await coverStore();if(!db)return;
+    const response=await fetch(safe,{signal:AbortSignal.timeout(5000)});
+    if(!response.ok)return;
+    const blob=await response.blob();
+    if(!/^image\/(?:png|jpeg|webp|gif|avif)$/.test(blob.type)||blob.size>350000)return;
+    db.transaction('images','readwrite').objectStore('images').put(blob,safe);
+  }catch(e){}
+}
+function shelfCover(b){
+  const url=httpsOnly(b.cover);
+  return '<span class="shelf-cover">'+ic('i-book')+(url?'<img alt="" data-shelf-cover="'+esc(url)+'" loading="lazy">':'')+'</span>';
+}
+async function showSavedCover(img){
+  const url=img.dataset.shelfCover;
+  if(localCovers.has(url)){img.src=localCovers.get(url);return;}
+  try{
+    const db=await coverStore();
+    if(db){
+      const req=db.transaction('images').objectStore('images').get(url);
+      const blob=await new Promise(resolve=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>resolve(null);});
+      if(blob){
+        if(!localCovers.has(url)){
+          if(localCovers.size>=60){img.src=url;return;}
+          localCovers.set(url,URL.createObjectURL(blob));
+        }
+        img.src=localCovers.get(url);return;
+      }
+    }
+  }catch(e){}
+  if(navigator.onLine!==false)img.src=url;
+}
+function paintShelfCovers(){
+  $$('img[data-shelf-cover]:not([src])').forEach(img=>{
+    img.addEventListener('error',()=>img.hidden=true,{once:true});showSavedCover(img);
+  });
+}
+const _shelfRender=render;
+render=function(){_shelfRender();if(tab==='books')paintShelfCovers();};
+function openShelfBook(b){
+  const pct=Math.min(100,Math.round(b.page/Math.max(1,b.total)*100));
+  const summary=b.desc?esc(b.desc):'Resumo indisponível para este livro.';
+  openSheet('<h2 id="sh-t">'+esc(b.title)+'</h2><div class="det">'+shelfCover(b)+'<div>'
+    +'<p>'+esc(b.author||'Autor não informado')+'</p><p class="muted">'+[b.year,b.total+' páginas',shelfLabel(b)].filter(Boolean).map(esc).join(' · ')+'</p></div></div>'
+    +'<p class="det-d">'+summary+'</p><progress class="shelf-progress" max="100" value="'+pct+'" aria-label="Progresso da leitura"></progress>'
+    +'<p class="muted">'+b.page+' de '+b.total+' páginas · '+pct+'%</p><div class="row">'
+    +(!b.done?'<button class="btn btn-primary" data-act="log" data-id="'+esc(b.id)+'">Registrar leitura</button>':'')
+    +'<button class="btn btn-ghost" data-act="close">Fechar</button><button class="btn btn-quiet" data-act="bk-remove" data-id="'+esc(b.id)+'">Remover da estante</button></div>');
+  paintShelfCovers();
+}
+function shelfTile(b){
+  return '<button class="shelf-tile" data-act="bk-details" data-id="'+esc(b.id)+'">'+shelfCover(b)
+    +'<strong>'+esc(b.title)+'</strong><span>'+esc(b.author||shelfLabel(b))+'</span>'
+    +'<small>'+b.page+' de '+b.total+' páginas</small></button>';
+}
 viewBooks=function(){
-  const top='<div class="row"><button class="btn btn-primary" data-act="add">'+ic('i-plus')+' Adicionar livro</button><button class="btn btn-ghost" data-act="go-search">'+ic('i-search')+' Buscar livros</button></div>';
-  if(!S.books.length)return top+'<section class="card empty"><h2>Sua estante está vazia</h2><p class="muted">Busque um livro no Google Livros ou adicione o que você está lendo.</p></section>';
-  const lendo=S.books.filter(b=>!b.done&&b.shelf!=='want'),quero=S.books.filter(b=>!b.done&&b.shelf==='want'),lidos=S.books.filter(b=>b.done);
-  const sec=(t,l)=>l.length?'<h2 class="sec">'+t+' ('+l.length+')</h2><section class="card shelf">'+l.map(bookCard).join('')+'</section>':'';
-  return top+sec('Lendo',lendo)+sec('Quero ler',quero)+sec('Concluídos',lidos);
+  const top='<div class="row"><button class="btn btn-primary" data-act="go-search">'+ic('i-search')+' Buscar livros</button><button class="btn btn-ghost" data-act="add">'+ic('i-plus')+' Adicionar livro</button></div>';
+  if(!S.books.length)return top+'<section class="card empty"><h2>Sua estante está vazia</h2><p class="muted">Busque um livro no catálogo ou cadastre o que você está lendo.</p></section>';
+  const labels=['Lendo','Quero ler','Concluídos'];
+  const filters=['all',...labels].map(key=>'<button class="chip" aria-pressed="'+(key===shelfFilter)+'" data-act="bk-filter" data-v="'+key+'">'+(key==='all'?'Todos':key)+'</button>').join('');
+  const sections=labels.filter(label=>shelfFilter==='all'||shelfFilter===label).map(label=>{
+    const books=S.books.filter(b=>shelfLabel(b)===label);
+    if(!books.length)return shelfFilter==='all'?'':'<p class="muted">Nenhum livro nesta seção.</p>';
+    return '<section><h2 class="sec">'+label+' ('+books.length+')</h2><div class="shelf-grid">'+books.map(shelfTile).join('')+'</div></section>';
+  }).join('');
+  const removal=ask?.startsWith('rm:')?S.books.find(b=>b.id===ask.slice(3)):null;
+  return top+(removal?'<section class="card"><p>Remover “'+esc(removal.title)+'” da estante?</p><div class="row"><button class="btn btn-danger" data-act="rm-yes" data-id="'+esc(removal.id)+'">Remover</button><button class="btn btn-ghost" data-act="ask-no">Cancelar</button></div></section>':'')+'<div class="fchips">'+filters+'</div>'+sections;
 };
 const _submitLog2=submitLog;
 submitLog=function(){
@@ -27,9 +91,9 @@ submitLog=function(){
 };
 document.addEventListener('click',function(e){
   const a=e.target.closest('[data-act]');if(!a)return;
-  if(a.dataset.act==='bk-start'){
-    const b=S.books.find(x=>x.id===a.dataset.id);
-    if(b){b.shelf='read';save();render();toast(['Movido para Lendo: '+b.title]);}
-  }
+  const b=S.books.find(x=>x.id===a.dataset.id);
+  if(a.dataset.act==='bk-details'&&b)openShelfBook(b);
+  if(a.dataset.act==='bk-filter'){shelfFilter=a.dataset.v;render();}
+  if(a.dataset.act==='bk-remove'&&b){closeSheet();ask='rm:'+b.id;render();window.scrollTo(0,0);}
   if(a.dataset.act==='go-search'){tab='search';render();window.scrollTo(0,0);}
 });

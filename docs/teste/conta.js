@@ -53,13 +53,20 @@ function registrarSync(p){
 }
 async function trocarPerfil(user){
   clearTimeout(pushT);
+  if(!user&&stateKey!==KEY&&!USR){
+    syncMsg='Entre novamente para enviar suas alterações. As leituras continuam neste aparelho.';
+    refreshConta();return;
+  }
   if(!user&&stateKey===KEY){
     try{localStorage.removeItem('lume-login');}catch(e){}
     refreshConta();return;
   }
   USR=user;
   stateKey=user?KEY+':uid:'+user.uid:KEY;
-  try{localStorage.setItem('lume-login',user?'1':'');}catch(e){}
+  try{
+    localStorage.setItem('lume-login',user?'1':'');
+    localStorage.setItem(KEY+':active',stateKey);
+  }catch(e){}
   const local=load();
   S=dadosSeguros(local)?normalizarPerfil(local):emptyState();
   perfil=user?{key:stateKey,ref:FB.db.collection('usuarios').doc(user.uid),ready:false,writing:false,
@@ -71,12 +78,14 @@ async function trocarPerfil(user){
   if(perfil===p)window.iniciarGuia?.();
 }
 async function carregarPerfil(p){
+  if(p.loading||p.writing)return;
+  p.loading=true;
   try{
     const snap=await p.ref.get({source:'server'});
     if(perfil!==p)return;
     const remote=snap.exists?snap.data():null;
     const rev=remote?.rev||0;
-    if(remote&&p.pending&&rev!==p.rev)throw new Error('conflito');
+    if(p.pending&&rev!==p.rev)throw new Error('conflito');
     if(remote&&!p.pending){
       const cloud=JSON.parse(remote.dados);
       if(!dadosSeguros(cloud))throw new Error('dados');
@@ -86,8 +95,9 @@ async function carregarPerfil(p){
     syncMsg=remote?'Progresso carregado da nuvem.':'Conta conectada.';
     if(p.pending)await enviar();
   }catch(e){
+    if(e.message==='conflito'){p.ready=false;p.conflict=true;}
     if(perfil===p)syncMsg=e.message==='conflito'?mensagemConflito():'Nuvem indisponível. Seu progresso está neste aparelho.';
-  }
+  }finally{p.loading=false;}
   if(perfil===p)refreshConta();
 }
 function mensagemConflito(){
@@ -114,25 +124,37 @@ async function enviar(){
     }
   }catch(e){
     if(perfil===p)syncMsg=e.message==='conflito'?mensagemConflito():legivel(e)+' Os dados seguem neste aparelho.';
-    if(e.message==='conflito')p.ready=false;
+    if(e.message==='conflito'){p.ready=false;p.conflict=true;}
   }finally{
     p.writing=false;
     if(perfil===p)refreshConta();
     if(perfil===p&&p.ready&&p.pending&&JSON.stringify(S)!==dados)enviar();
   }
 }
+function retomarSincronizacao(){
+  if(!nvOk()||navigator.onLine===false)return;
+  const p=perfil;
+  if(p?.conflict)return;
+  if(p?.ready){if(p.pending)enviar();}
+  else if(p)carregarPerfil(p);
+  else if(stateKey!==KEY&&!FB)fbInit().catch(()=>{});
+}
+window.addEventListener('online',retomarSincronizacao);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)retomarSincronizacao();});
 save=function(){
   const stored=_saveRaw();
   if(perfil&&stored){
     perfil.pending=true;registrarSync(perfil);
-    clearTimeout(pushT);pushT=setTimeout(enviar,800);
+    clearTimeout(pushT);pushT=setTimeout(retomarSincronizacao,800);
+  }else if(stored&&stateKey!==KEY){
+    registrarSync({key:stateKey,rev:metaPerfil(stateKey).rev||0,pending:true});
   }
   return stored;
 };
 function contaHtml(){
   let o='<h2 id="sh-t">Conta e dados</h2>';
   if(!nvOk())o+='<p class="muted">O login na nuvem ainda precisa ser ativado. Você pode usar o app neste aparelho e exportar um backup.</p>';
-  else if(!USR)o+='<form id="form-login" novalidate><p class="muted">Entre para sincronizar em outros aparelhos. O progresso sem login fica separado.</p>'
+  else if(!USR)o+=(stateKey!==KEY?'<p class="muted" id="cl-msg">Progresso disponível neste aparelho. Entre para sincronizar.</p><button class="btn btn-quiet" data-act="cl-visitante">Voltar ao perfil visitante</button>':'')+'<form id="form-login" novalidate><p class="muted">Entre para sincronizar em outros aparelhos. O progresso sem login fica separado.</p>'
     +'<label for="cl-e">E-mail</label><input id="cl-e" type="email" autocomplete="email" inputmode="email">'
     +'<label for="cl-s">Senha</label><input id="cl-s" type="password" autocomplete="current-password">'
     +'<p class="err" id="cl-err" role="alert"></p><div class="row"><button class="btn btn-primary" type="submit">Entrar</button><button class="btn btn-ghost" type="button" data-act="cl-criar">Criar conta</button></div>'
@@ -164,6 +186,9 @@ document.addEventListener('click',function(e){
     case 'cl-google':tentar(()=>FB.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()));break;
     case 'cl-facebook':tentar(()=>FB.auth.signInWithPopup(new firebase.auth.FacebookAuthProvider()));break;
     case 'cl-reset':tentar(async()=>{if(!em())return err('Digite seu e-mail acima.');await FB.auth.sendPasswordResetEmail(em());err('Confira seu e-mail para trocar a senha.');});break;
+    case 'cl-visitante':
+      if(!USR){stateKey=KEY;try{localStorage.setItem(KEY+':active',KEY);localStorage.setItem('lume-login','');}catch(e){}S=load()||emptyState();closeSheet();tab='today';ask=null;applyTema();render();}
+      break;
     case 'cl-sair':tentar(async()=>{await enviar();await FB.auth.signOut();});break;
     case 'cl-sync':if(perfil?.ready){if(perfil.pending)enviar();else carregarPerfil(perfil);}else if(perfil)carregarPerfil(perfil);break;
   }

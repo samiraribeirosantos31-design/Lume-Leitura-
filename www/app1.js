@@ -14,6 +14,10 @@ const KEY='lume-leitura-v1';
 const STAGES=['Ovo','Filhote','Leitor','Sábio','Lendário'];
 const CUTS=[0,15,60,160,350];
 let stateKey=KEY;
+try{
+  const last=localStorage.getItem(KEY+':active');
+  if(window.NUVEM?.apiKey&&last?.startsWith(KEY+':uid:')&&localStorage.getItem(last))stateKey=last;
+}catch(e){}
 let S=null, tab='today', ask=null, lastFocus=null, tt=null;
 
 function load(){

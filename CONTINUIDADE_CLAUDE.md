@@ -90,3 +90,20 @@ também atualizando um aparelho que já tem livros e notas.
 
 Use o quadro como referência de prioridades e a proposta no GitHub como
 referência do código em revisão. O quadro tem acesso público de leitura.
+
+## Segunda revisão
+
+- A busca usa o Google Livros e recorre à Open Library quando o catálogo
+  principal falha ou não retorna resultados. Sem internet, consulta os
+  livros já salvos no aparelho. O resumo da Open Library é carregado sob
+  demanda e guardado no registro quando disponível.
+- A estante organiza capas por Lendo, Quero ler e Concluídos. Os detalhes
+  mostram a ficha do livro e as páginas, com acesso ao registro de leitura.
+  Capas baixadas e compatíveis são mantidas em cache local separado dos dados.
+- O perfil carregado anteriormente pode reabrir offline. O app guarda alterações
+  imediatamente, volta a tentar sincronizar quando recupera a conexão ou volta
+  à tela e protege dados de revisões concorrentes.
+- Login entre aparelhos ainda depende do projeto Firebase da equipe. Configure
+  NUVEM e publique as regras antes da validação de contas reais.
+- Novo projeto Cloudflare Pages da equipe: lume-leitura-kanban.pages.dev.
+  A publicação de dados do quadro depende da configuração de acesso privado.

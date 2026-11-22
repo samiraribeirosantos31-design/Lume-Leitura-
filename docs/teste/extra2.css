@@ -60,3 +60,12 @@ a.btn{text-decoration:none;color:var(--ink)}
 .guia-passo{animation:guia-entrar .24s ease-out both}
 @keyframes guia-entrar{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.guia-passo{animation:none}}
+
+.shelf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px;margin-top:10px}
+.shelf-tile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:9px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left}
+.shelf-tile strong{line-height:1.22;overflow-wrap:anywhere}
+.shelf-tile span:not(.shelf-cover),.shelf-tile small{font-size:.78rem;color:var(--ink-2)}
+.shelf-cover{display:grid;place-items:center;position:relative;width:100%;aspect-ratio:2/3;overflow:hidden;border-radius:8px;background:var(--pet-wash);color:var(--pet-text)}
+.shelf-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.det .shelf-cover{width:82px;flex:none}
+.shelf-progress{width:100%;height:12px;accent-color:var(--pet-deep)}
