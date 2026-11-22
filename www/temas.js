@@ -43,47 +43,11 @@ function applyTema(){
 let lookDraft=null;
 const swColor=t=>t.p?H(t.h,75,80):H(t.h,t.as,t.al);
 const swBtn=t=>'<button type="button" class="sw" data-act="tema-set" data-v="'+t.id+'" aria-pressed="'+((lookDraft?.tema||temaAtual().id)===t.id)+'" aria-label="'+t.n+'"><i style="background:'+swColor(t)+'"></i><span>'+t.n+'</span></button>';
-const ACCESSORIES={none:'Sem acessório',bow:'Gravata',star:'Estrela',scarf:'Lenço'};
-const FACES={auto:'Conforme a leitura',happy:'Alegre',normal:'Atento',sleepy:'Sonolento'};
 function paletteHtml(){
   return '<section class="look" id="look-zone"><h3>Cores do app</h3><label>Tons pastel</label><div class="swatches">'+TEMAS.filter(t=>t.p).map(swBtn).join('')
    +'</div><label>Cores vivas</label><div class="swatches">'+TEMAS.filter(t=>!t.p).map(swBtn).join('')
    +'</div><button class="btn btn-primary btn-block" type="button" data-act="look-save">Salvar cores</button></section>';
 }
-function mascotArt(kind,stage,mood,accessory){
-  const art=petOf(kind,stage,mood);
-  if(stage===0)return art;
-  const artByAccessory={
-    bow:'<path d="m87 136-18-8v20l18-7m26-5 18-8v20l-18-7" fill="#f9b9cd"/><circle cx="100" cy="139" r="8" fill="#df6c8e"/>',
-    star:'<path d="m152 55 5 10 11 2-8 8 2 11-10-5-10 5 2-11-8-8 11-2Z" fill="#ffd477" stroke="#7c4c27" stroke-width="2"/>',
-    scarf:'<path d="M54 129q46 24 92 0v12q-45 26-92 1Zm74 15h13l8 24-15-4Z" fill="var(--pet-deep)" stroke="var(--page)" stroke-width="2"/>'
-  };
-  return artByAccessory[accessory]?art.replace('</svg>',artByAccessory[accessory]+'</svg>'):art;
-}
-pet=function(stage,mood){
-  const face=S.petFace&&S.petFace!=='auto'?S.petFace:mood;
-  return mascotArt(S.mascote||'coruja',stage,mood==='blink'||mood==='speak'?mood:face,S.petAccessory);
-};
-let petDraft=null;
-const petChoices=(choices,value)=>Object.entries(choices).map(([key,label])=>'<option value="'+key+'"'+(key===value?' selected':'')+'>'+label+'</option>').join('');
-function mascotChoices(){
-  return '<div class="mascs" id="mascot-choices">'+MASC.map(m=>'<button type="button" class="mc" data-act="masc-set" data-v="'+m[0]+'" aria-pressed="'+(petDraft.kind===m[0])+'"><div class="mc-i">'
-    +mascotArt(m[0],2,petDraft.face==='auto'?'normal':petDraft.face,petDraft.accessory).replace(/role="img" aria-label="[^"]*"/,'aria-hidden="true"')+'</div><span>'+m[1]+'</span></button>').join('')+'</div>';
-}
-function openMascot(){
-  petDraft={kind:S.mascote||'coruja',accessory:S.petAccessory||'none',face:S.petFace||'auto'};
-  openSheet('<h2 id="sh-t">Meu mascote</h2><form id="form-mascot" novalidate><label for="nm-t">Nome</label><input id="nm-t" maxlength="14" autocomplete="off" value="'+esc(S.petName)+'">'
-    +'<label for="pet-face">Expressão</label><select id="pet-face">'+petChoices(FACES,petDraft.face)+'</select>'
-    +'<label for="pet-accessory">Acessório</label><select id="pet-accessory">'+petChoices(ACCESSORIES,petDraft.accessory)+'</select>'
-    +'<p class="hint">Os acessórios aparecem depois que o ovo chocar.</p>'+mascotChoices()
-    +'<div class="row"><button class="btn btn-primary" type="submit">Salvar mascote</button><button class="btn btn-ghost" type="button" data-act="close">Cancelar</button></div></form>');
-}
-const _openSettings=openSettings;
-openSettings=function(){
-  lookDraft={tema:temaAtual().id};
-  _openSettings();
-  $('#wipe-zone')?.insertAdjacentHTML('beforebegin','<button class="btn btn-soft btn-block" data-act="look-open">Personalizar cores</button>');
-};
 document.addEventListener('click',function(e){
   const a=e.target.closest('[data-act]');if(!a)return;
   const act=a.dataset.act;
@@ -99,21 +63,6 @@ document.addEventListener('click',function(e){
   if(act==='tema-set'&&lookDraft){
     lookDraft.tema=a.dataset.v;const z=$('#look-zone');if(z)z.outerHTML=paletteHtml();
   }
-  if(act==='masc-set'&&petDraft){
-    petDraft.kind=a.dataset.v;const z=$('#mascot-choices');if(z)z.outerHTML=mascotChoices();
-  }
-});
-document.addEventListener('change',e=>{
-  if(!petDraft||!['pet-face','pet-accessory'].includes(e.target.id))return;
-  petDraft.face=$('#pet-face').value;petDraft.accessory=$('#pet-accessory').value;
-  const z=$('#mascot-choices');if(z)z.outerHTML=mascotChoices();
-});
-document.addEventListener('submit',function(e){
-  if(e.target.id!=='form-mascot'||!petDraft)return;
-  const fields={petName:S.petName,mascote:S.mascote,petFace:S.petFace,petAccessory:S.petAccessory};
-  Object.assign(S,{petName:($('#nm-t').value||'').trim()||'Mascote',mascote:petDraft.kind,petFace:petDraft.face,petAccessory:petDraft.accessory});
-  if(!save()){Object.assign(S,fields);toast(['Não foi possível salvar o mascote']);return;}
-  closeSheet();render();toast(['Mascote salvo']);
 });
 if(S.mascote==='avatar'){S.mascote='coruja';save();}
 applyTema();

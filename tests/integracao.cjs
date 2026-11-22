@@ -205,3 +205,84 @@ test('trechos são dos livros correspondentes e a legenda leva ao download ofici
  assert.equal(h.evaluate("bookQuotes({id:'b',title:'Obra desconhecida'}).length"),0);
  assert.match(h.evaluate("shareText({title:'Meu livro',author:'Ana',desc:'Descrição'})"),/Descrição.*github\.io/s);
 });
+
+test('mascote sugere após a primeira leitura, reage após a quarta e dá tempo para a rotina',()=>{
+ const h=harness();
+ h.evaluate(`S.books=Array.from({length:4},(_,i)=>({id:'r'+i,title:'Livro '+i,author:'Autora'}));
+  const logFor=(i,date,mins)=>({bookId:'r'+i,date,min:mins,pts:mins,pages:0});`);
+ assert.doesNotMatch(h.evaluate('viewToday()'),/class="pet-advice"/);
+ h.evaluate('S.logs=[logFor(0,today(),25)]');
+ assert.match(h.evaluate('viewToday()'),/class="pet-advice" data-mood="normal"/);
+ h.evaluate('S.logs.push(logFor(1,today(),1),logFor(2,today(),1))');
+ assert.equal(h.evaluate('journeyMood(readingJourney(),27)'),'normal');
+ h.evaluate('S.logs.push(logFor(3,today(),1))');
+ assert.equal(h.evaluate('journeyMood(readingJourney(),28)'),'happy');
+ h.evaluate('S.logs.forEach(l=>l.date=dkey(addDays(new Date(),-1)))');
+ assert.equal(h.evaluate('journeyMood(readingJourney(),0)'),'normal');
+ h.evaluate('S.logs.forEach(l=>l.date=dkey(addDays(new Date(),-8)))');
+ assert.equal(h.evaluate('journeyMood(readingJourney(),0)'),'sleepy');
+});
+
+test('trilha abre no 30 e se expande no 50; mascotes secretos ficam sem nome e imagem',async()=>{
+ const h=harness();
+ h.evaluate(`S.books=[{id:'x',title:'Leitura'}];const log={bookId:'x',date:today(),min:20,pages:0,finished:false,pts:899};S.logs=[log];`);
+ assert.doesNotMatch(h.evaluate('viewToday()'),/pet-secret/);
+ await h.click('pet-touch');
+ assert.doesNotMatch(h.elements.get('sheet-root').innerHTML,/Trilha secreta|pet-face|data-v="cervo"/);
+ h.evaluate('log.pts=900');
+ assert.equal(h.evaluate('readingJourney().level'),30);
+ await h.click('pet-secret');
+ let html=h.elements.get('sheet-root').innerHTML;
+ assert.match(html,/>\?<\/span><span>Nível 40/);
+ assert.doesNotMatch(html,/Cervo lunar|Lobo do eclipse|Nível 60|Deus da leitura/);
+ h.evaluate('log.pts=1450');
+ await h.click('pet-secret');
+ html=h.elements.get('sheet-root').innerHTML;
+ assert.match(html,/Serpente estelar/);
+ assert.match(html,/>\?<\/span><span>Nível 60/);
+ assert.doesNotMatch(html,/Lobo do eclipse|Guardião da aurora/);
+ assert.match(html,/Deus da leitura/);
+});
+
+test('nível 70 exige 100 obras iniciadas e 30 concluídas no registro, inclusive depois de editar a estante',async()=>{
+ const h=harness();
+ h.evaluate(`
+   S.books=Array.from({length:101},(_,i)=>({id:'r'+i,title:'Livro '+i,author:'Autora',done:true,total:200,page:200}));
+   S.logs=S.books.slice(0,99).map((b,i)=>({bookId:b.id,date:today(),min:1,pages:48,pts:i<30?99:49,finished:i<30,work:bookIdentity(b)}));
+   const lastBook=S.books[99];
+   const extraLog={bookId:lastBook.id,date:today(),min:1,pages:1,pts:2,finished:false,work:bookIdentity(lastBook)};
+   S.books.push({...S.books[0],id:'clone',title:' LIVRO 0! '});
+   S.logs.push({...S.logs[0],bookId:'clone',work:bookIdentity(S.books.at(-1))});
+ `);
+ assert.equal(h.evaluate('readingJourney().started'),99);
+ assert.equal(h.evaluate('readingJourney().level'),69);
+ h.evaluate('S.logs.pop(); S.logs.push(extraLog); delete S.logs[0].finished; S.logs[0].pts=49');
+ assert.equal(h.evaluate('readingJourney().started'),100);
+ assert.equal(h.evaluate('readingJourney().finished'),29);
+ assert.equal(h.evaluate('readingJourney().level'),69);
+ h.evaluate('S.logs[0].pts+=50');
+ assert.equal(h.evaluate('readingJourney().finished'),30);
+ assert.equal(h.evaluate('readingJourney().level'),70);
+ assert.match(h.evaluate('viewToday()'),/Deus da leitura/);
+ await h.click('rm-yes',{id:'r0'});
+ assert.equal(h.evaluate('readingJourney().level'),70);
+});
+
+test('dados de demonstração não evoluem o mascote e Ajustes abre com leitura separada',async()=>{
+ const h=harness({native:true,readingTimer:{}});
+ h.evaluate('S=seed()');
+ assert.equal(h.evaluate('readingJourney().started'),0);
+ assert.equal(h.evaluate('readingJourney().level'),1);
+ await h.click('settings');
+ const sheet=h.elements.get('sheet-root');
+ assert.match(sheet.innerHTML,/Leitura e avisos/);
+ assert.doesNotMatch(sheet.innerHTML,/form-set|up-enable|data-act="wipe"/);
+ await h.click('settings-section',{v:'reading'});
+ assert.match(sheet.innerHTML,/form-set/);
+ assert.match(sheet.innerHTML,/tm-alerts/);
+ assert.match(sheet.innerHTML,/lem-toggle/);
+ await h.click('settings-section',{v:'updates'});
+ assert.match(sheet.innerHTML,/up-check/);
+ await h.click('settings-section',{v:'data'});
+ assert.match(sheet.innerHTML,/demo-limpar/);
+});

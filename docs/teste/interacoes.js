@@ -7,9 +7,8 @@ document.addEventListener('pointerdown',e=>{
   heldElement=null;resetHold();
   hold={x:e.clientX,y:e.clientY,pointer:e.pointerId,timeout:setTimeout(()=>{
     heldElement=target;hold=null;
-    if(target.dataset.hold==='mascot')openMascot();
-    else{const b=S.books.find(item=>item.id===target.dataset.id);if(b)shelfMenu(b);}
-  },target.dataset.hold==='mascot'?2000:550)};
+    const b=S.books.find(item=>item.id===target.dataset.id);if(b)shelfMenu(b);
+  },550)};
 });
 document.addEventListener('pointermove',e=>{
   if(hold?.pointer===e.pointerId&&Math.hypot(e.clientX-hold.x,e.clientY-hold.y)>12)resetHold();
@@ -43,8 +42,9 @@ function bookQuotes(book){
 }
 function blinkForQuote(){
   const image=$('.pet-touch');
-  if(!image||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||stageOf(points())===0)return;
-  const prior=image.innerHTML,st=stageOf(points()),effect=++quoteEffect;
+  const journey=readingJourney(),st=journeyStage(journey);
+  if(!image||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||st===0||journey.started<=3)return;
+  const prior=image.innerHTML,effect=++quoteEffect;
   image.innerHTML=pet(st,'blink');
   setTimeout(()=>{if(effect===quoteEffect&&image.isConnected)image.innerHTML=pet(st,'speak');},190);
   setTimeout(()=>{if(effect===quoteEffect&&image.isConnected)image.innerHTML=prior;},720);
@@ -75,23 +75,15 @@ function quoteDetails(){
 }
 document.addEventListener('click',e=>{
   const a=e.target.closest('[data-act]');if(!a)return;
-  if(a.dataset.act==='pet-touch'){
-    if(e.detail===0)openMascot();
-    else toast(['Segure o mascote por dois segundos para personalizar.']);
-  }
+  if(a.dataset.act==='pet-touch')openMascot();
   if(a.dataset.act==='quote-open'){blinkForQuote();quoteDetails();}
   if(a.dataset.act==='quote-share'&&readingQuote?.profile===stateKey){
     const b=S.books.find(x=>x.id===readingQuote.bookId);if(b)shareReadingCard(b,readingQuote.text);
   }
   if(a.dataset.act==='quote-toggle'){
-    S.petQuotes=S.petQuotes===false;save();render();openSettings();
+    S.petQuotes=S.petQuotes===false;save();render();openSettings('reading');
   }
 });
-const quoteSettings=openSettings;
-openSettings=function(){
-  quoteSettings();
-  $('#wipe-zone')?.insertAdjacentHTML('beforebegin','<button class="btn btn-soft btn-block" data-act="quote-toggle">Trechos do mascote: '+(S.petQuotes===false?'desativados':'ativados')+'</button>');
-};
 const interactiveRender=render;
 render=function(){interactiveRender();trackTimer();};
 

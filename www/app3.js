@@ -53,14 +53,6 @@ function openLog(id){
    +'<p class="err" id="f-err" role="alert"></p>'
    +'<div class="row"><button class="btn btn-primary" type="submit">Salvar leitura</button><button class="btn btn-ghost" type="button" data-act="close">Cancelar</button></div></form>','f-min');
 }
-function openSettings(){
-  openSheet('<h2 id="sh-t">Ajustes</h2><form id="form-set" novalidate>'
-   +'<label for="f-goal">Meta diária (minutos)</label><div class="stepper"><button type="button" data-act="step" data-d="-5" aria-label="Diminuir 5 minutos">−</button>'
-   +'<input id="f-goal" type="number" inputmode="numeric" min="5" max="240" step="5" value="'+S.goal+'"><button type="button" data-act="step" data-d="5" aria-label="Aumentar 5 minutos">+</button></div>'
-   +'<p class="err" id="f-err" role="alert"></p>'
-   +'<div class="row"><button class="btn btn-primary" type="submit">Salvar</button><button class="btn btn-ghost" type="button" data-act="close">Fechar</button></div></form>'
-   +(S.demo?'<button class="btn btn-ghost btn-block" type="button" data-act="demo-limpar">Remover dados de demonstração</button>':'')+'<div class="zone" id="wipe-zone"><p>Seus dados ficam guardados neste aparelho.</p><button class="btn btn-ghost" type="button" data-act="wipe">Apagar todos os dados</button></div>','f-goal');
-}
 function curBook(){const el=$('#f-book');return el?S.books.find(b=>b.id===el.value):null;}
 function formReadingMinutes(){
   const h=Number($('#f-hours')?.value||0),m=Number($('#f-min')?.value||0);
@@ -89,15 +81,18 @@ function submitLog(){
   if(isNaN(pg))pg=b.page;
   if(pg<b.page)return fail('Você já estava na página '+b.page+'. Informe essa página ou uma maior.');
   if(pg>b.total)return fail('Este livro tem '+b.total+' páginas. Informe uma página até '+b.total+'.');
-  const stBefore=stageOf(points()),c=calc(b,min,pg);
-  S.logs.push({id:uid(),date:today(),bookId:b.id,min:min,pages:c.pages,pts:c.pts});
+  const before=readingJourney(),c=calc(b,min,pg);
+  S.logs.push({id:uid(),date:today(),bookId:b.id,min:min,pages:c.pages,pts:c.pts,work:bookIdentity(b),finished:c.fin});
   b.page=pg;if(c.fin)b.done=true;
-  const stAfter=stageOf(points()),now=unlockedIds(),seen=S.seen||[],fresh=achs().filter(a=>a.ok&&seen.indexOf(a.id)<0);
+  const after=readingJourney(),now=unlockedIds(),seen=S.seen||[],fresh=achs().filter(a=>a.ok&&seen.indexOf(a.id)<0);
   if(!S.demo)S.seen=now;save();closeSheet();render();
   const lines=['+'+c.pts+' pontos'];
   if(c.goal)lines.push('Meta de hoje batida');
   if(c.fin)lines.push('Livro concluído: '+b.title);
-  if(stAfter>stBefore)lines.push(S.petName+' evoluiu para '+STAGES[stAfter]);
+  if(journeyStage(before)===0&&journeyStage(after)>0)lines.push(S.petName+' saiu do ovo!');
+  if(after.level>before.level)lines.push(S.petName+' chegou ao nível '+after.level+' · '+journeyRank(after.level));
+  if(before.level<30&&after.level>=30)lines.push('A trilha secreta foi revelada!');
+  if(before.level<50&&after.level>=50)lines.push('Uma nova trilha foi revelada · até o nível 70!');
   fresh.forEach(a=>lines.push('Conquista: '+a.name));
   toast(lines);
 }
@@ -149,7 +144,12 @@ document.addEventListener('click',function(e){
     case 'rm':{
       const b=S.books.find(x=>x.id===id);if(b)confirmAction('Remover da estante?','“'+b.title+'” será removido. Suas leituras e notas já registradas serão preservadas.','rm-yes','Remover livro',b.id);break;
     }
-    case 'rm-yes':S.books=S.books.filter(b=>b.id!==id);if(S.timer?.bookId===id)S.timer=null;ask=null;save();closeSheet();render();toast(['Livro removido']);break;
+    case 'rm-yes':{
+      const book=S.books.find(b=>b.id===id);
+      if(book&&!(S.demo&&['b1','b2','b3'].includes(id))){
+        for(const log of S.logs)if(log.bookId===id&&!log.work)log.work=bookIdentity(book);
+      }
+      S.books=S.books.filter(b=>b.id!==id);if(S.timer?.bookId===id)S.timer=null;ask=null;save();closeSheet();render();toast(['Livro removido']);break;}
     case 'ask-clear':ask='clear';render();break;
     case 'ask-no':ask=null;render();break;
     case 'wipe':confirmAction('Apagar dados do perfil?','Isso apaga livros, notas, leituras e pontos deste perfil, inclusive na nuvem quando conectada.','wipe-yes','Apagar tudo');break;

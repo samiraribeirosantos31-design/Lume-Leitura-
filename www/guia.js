@@ -6,7 +6,7 @@ const passos=[
   ['books','Acompanhe a estante','Em Livros, veja suas capas e o progresso de páginas em cada livro.'],
   ['notes','Guarde suas ideias','Em Notas, salve reflexões, citações e páginas para consultar depois.'],
   ['ach','Acompanhe as recompensas','Em Conquistas, veja os selos que ganhou. Em Hoje, acompanhe a evolução do mascote.'],
-  ['settings','Deixe o Lume com a sua cara','Use a engrenagem para mudar a cor, acessar a conta e fazer backup. Segure o mascote por dois segundos para personalizá-lo.']
+  ['settings','Deixe o Lume com a sua cara','Use a engrenagem para mudar a cor, acessar a conta e fazer backup. Toque no mascote para personalizá-lo.']
 ];
 let passoGuia=-1;
 const chaveGuia=()=>stateKey+':guia';
@@ -50,11 +50,6 @@ if(guia?.showModal){
       if(passoGuia===passos.length)fecharGuia();else verPassoGuia();
     }
   });
-  const abrirAjustes=openSettings;
-  openSettings=function(){
-    abrirAjustes();
-    $('#wipe-zone')?.insertAdjacentHTML('beforebegin','<button class="btn btn-soft btn-block" type="button" data-act="guia-rever">Rever tutorial</button>');
-  };
   function mostrarBoasVindas(){
     passoGuia=-1;
     mostrarGuia('<div class="guia-passo"><h2 id="guia-titulo">Boas-vindas ao Lume Leitura</h2>'

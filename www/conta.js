@@ -172,11 +172,6 @@ function openConta(){
 function refreshConta(){const msg=$('#cl-msg');if(msg)msg.textContent=syncMsg;}
 const err=m=>{const e=$('#cl-err');if(e)e.textContent=m;};
 async function tentar(fn){try{await fbInit();await fn();}catch(e){err(legivel(e));}}
-const _openSettings2=openSettings;
-openSettings=function(){
-  _openSettings2();
-  const z=$('#wipe-zone');if(z)z.insertAdjacentHTML('beforebegin','<button class="btn btn-soft btn-block" type="button" data-act="conta">Conta e dados'+(USR?' (conectado)':'')+'</button>');
-};
 document.addEventListener('click',function(e){
   const a=e.target.closest('[data-act]');if(!a)return;
   const em=()=>($('#cl-e')?.value||'').trim(),pw=()=>$('#cl-s')?.value||'';

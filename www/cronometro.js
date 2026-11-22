@@ -137,11 +137,6 @@ submitLog=function(){
     openingReadingQuote(entry.bookId);
   }
 };
-const timerSettings=openSettings;
-openSettings=function(){
-  timerSettings();
-  if(readingPlugin())$('#wipe-zone')?.insertAdjacentHTML('beforebegin','<button class="btn btn-soft btn-block" data-act="tm-alerts">Cronômetro nas notificações: '+(S.timerAlerts===false?'desativado':'preferência ativa')+'</button>');
-};
 document.addEventListener('click',async function(e){
   const a=e.target.closest('[data-act]');if(!a)return;
   const act=a.dataset.act;
@@ -149,6 +144,8 @@ document.addEventListener('click',async function(e){
   if(!act.startsWith('tm-'))return;
   if(act==='tm-start'||act==='tm-quick'){startReadingTimer(act==='tm-quick'?a.dataset.id:$('#tm-book')?.value);return;}
   if(act==='tm-alerts'){
+    if(a.disabled)return;
+    a.disabled=true;
     const permissions=window.Capacitor?.Plugins?.LocalNotifications;
     let granted=false;
     try{
@@ -158,8 +155,9 @@ document.addEventListener('click',async function(e){
       else S.timerAlerts=S.timerAlerts===false;
       if(!granted)return toast(['Ative as notificações do Lume nas configurações do Android.']);
       if(status?.display!=='granted')S.timerAlerts=true;
-      save();publishTimer();openSettings();
+      save();publishTimer();if(a.isConnected)openSettings('reading');
     }catch(e){toast(['Não foi possível alterar as notificações.']);}
+    finally{a.disabled=false;}
     return;
   }
   const before=S.timer;

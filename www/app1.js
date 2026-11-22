@@ -70,7 +70,7 @@ function achs(){
   const list=[
     {id:'first',icon:'i-book',name:'Primeira leitura',desc:'Registre sua primeira leitura.',cur:Math.min(S.logs.length,1),t:1},
     {id:'m15',icon:'i-today',name:'Primeiros 15 minutos',desc:'Some 15 minutos de leitura.',cur:m,t:15},
-    {id:'petMax',icon:'i-star',name:'Mascote lendário',desc:'Alcance o último estágio.',cur:pts,t:CUTS[4]},
+    {id:'petMax',icon:'i-star',name:'Mascote lendário',desc:'Some 350 pontos de leitura.',cur:pts,t:CUTS[4]},
     {id:'s3',icon:'i-flame',name:'Três dias firmes',desc:'Bata a meta 3 dias seguidos.',cur:ls,t:3},
     {id:'s7',icon:'i-flame',name:'Semana inteira',desc:'Bata a meta 7 dias seguidos.',cur:ls,t:7},
     {id:'s30',icon:'i-flame',name:'Mês de leitura',desc:'Bata a meta 30 dias seguidos.',cur:ls,t:30},
@@ -82,6 +82,7 @@ function achs(){
     {id:'b5',icon:'i-books',name:'Estante cheia',desc:'Termine 5 livros.',cur:done,t:5},
     {id:'pet3',icon:'i-star',name:'Sábio da estante',desc:'Leve '+S.petName+' ao estágio Sábio.',cur:pts,t:CUTS[3]}
   ];
+  list.push(...journeyAchievements(readingJourney()));
   return list.map(a=>({id:a.id,icon:a.icon,name:a.name,desc:a.desc,t:a.t,ok:(a.cur>=a.t||(S.seen||[]).includes(a.id)),cur:(S.seen||[]).includes(a.id)?a.t:Math.min(a.cur,a.t)}));
 }
 const unlockedIds=()=>achs().filter(a=>a.ok).map(a=>a.id);

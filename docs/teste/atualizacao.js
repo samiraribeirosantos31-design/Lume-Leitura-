@@ -74,13 +74,14 @@
     if(a.dataset.act==='up-open')openPage();
     if(a.dataset.act==='up-check')check(true);
     if(a.dataset.act==='up-enable')permissions();
-    if(a.dataset.act==='settings'){
-      var zone=document.getElementById('wipe-zone');if(!zone)return;
-      var p=document.createElement('div');p.className='zone';p.id='up-zone';
-      p.innerHTML='<b>Atualizações</b><p>Versão '+esc(build.name)+'. A verificação acontece ao abrir ou retornar ao app, com internet.</p><p id="up-msg" role="status"></p><div class="row"><button type="button" class="btn btn-soft" data-act="up-check">Verificar atualização</button><button type="button" class="btn btn-ghost" data-act="up-enable">Ativar avisos</button><button type="button" class="btn btn-quiet" data-act="up-open">Página de download</button></div>';
-      zone.parentNode.insertBefore(p,zone);
-    }
   });
+  window.lumeUpdatesSettings=function(){
+    return '<p class="hint">Versão '+esc(build.name)+'. Com internet, o Lume verifica novidades ao abrir ou retornar ao app.</p>'
+      +'<p id="up-msg" role="status"></p><div class="settings-stack">'
+      +'<button type="button" class="btn btn-soft" data-act="up-check">Verificar atualização</button>'
+      +'<button type="button" class="btn btn-ghost" data-act="up-enable">Ativar avisos</button>'
+      +'<button type="button" class="btn btn-ghost" data-act="up-open">Página de download</button></div>';
+  };
   document.addEventListener('visibilitychange',function(){if(!document.hidden)check(false);});
   window.addEventListener('online',function(){check(false);});
   var n=plugin();

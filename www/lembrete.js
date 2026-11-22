@@ -35,11 +35,6 @@ function lemHtml(){
    +'<p class="muted" id="lem-msg">'+(nat?'Você receberá uma notificação todos os dias nesse horário.':'No navegador, a notificação só aparece com o app aberto. Para um aviso de verdade, use o botão abaixo e adicione ao calendário do celular.')+'</p>'
    +(nat?'':'<button type="button" class="btn btn-soft btn-block" data-act="lem-ics">Adicionar lembrete ao calendário</button>')+'</div>';
 }
-const _openSettingsLem=openSettings;
-openSettings=function(){
-  _openSettingsLem();
-  const z=$('#look-zone');if(z)z.insertAdjacentHTML('beforebegin',lemHtml());
-};
 function lemMsg(t){const m=$('#lem-msg');if(m)m.textContent=t;}
 document.addEventListener('click',async function(e){
   const a=e.target.closest('[data-act]');if(!a)return;
