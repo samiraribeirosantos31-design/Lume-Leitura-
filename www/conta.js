@@ -72,7 +72,7 @@ async function trocarPerfil(user){
   perfil=user?{key:stateKey,ref:FB.db.collection('usuarios').doc(user.uid),ready:false,writing:false,
     rev:0,pending:false,...metaPerfil(stateKey)}:null;
   syncMsg=user?'Carregando o progresso da conta…':'';
-  closeSheet();tab='today';ask=null;tmBook=null;tmAsk=false;applyTema();render();
+  closeSheet();tab='today';ask=null;tmBook=null;readingDim=false;applyTema();render();
   const p=perfil;
   if(p)await carregarPerfil(p);
   if(perfil===p)window.iniciarGuia?.();
@@ -153,8 +153,8 @@ save=function(){
 };
 function contaHtml(){
   let o='<h2 id="sh-t">Conta e dados</h2>';
-  if(!nvOk())o+='<p class="muted">O login na nuvem ainda precisa ser ativado. Você pode usar o app neste aparelho e exportar um backup.</p>';
-  else if(!USR)o+=(stateKey!==KEY?'<p class="muted" id="cl-msg">Progresso disponível neste aparelho. Entre para sincronizar.</p><button class="btn btn-quiet" data-act="cl-visitante">Voltar ao perfil visitante</button>':'')+'<form id="form-login" novalidate><p class="muted">Entre para sincronizar em outros aparelhos. O progresso sem login fica separado.</p>'
+  if(!nvOk())o+='<p class="muted">A sincronização da conta ainda não está disponível nesta versão. Seu progresso fica salvo neste aparelho e você pode exportar um backup abaixo.</p>';
+  else if(!USR)o+=(stateKey!==KEY?'<p class="muted" id="cl-msg">Progresso disponível neste aparelho. Entre para sincronizar.</p><button class="btn btn-quiet" data-act="cl-visitante">Voltar ao perfil visitante</button>':'')+'<form id="form-login" novalidate><p class="muted">Entre para salvar e recuperar suas leituras em outro aparelho. O progresso sem login fica separado.</p>'
     +'<label for="cl-e">E-mail</label><input id="cl-e" type="email" autocomplete="email" inputmode="email">'
     +'<label for="cl-s">Senha</label><input id="cl-s" type="password" autocomplete="current-password">'
     +'<p class="err" id="cl-err" role="alert"></p><div class="row"><button class="btn btn-primary" type="submit">Entrar</button><button class="btn btn-ghost" type="button" data-act="cl-criar">Criar conta</button></div>'

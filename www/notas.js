@@ -51,9 +51,7 @@ function viewNotes(){
   if(!list.length)return html+'<section class="card empty"><h2>Nada neste filtro</h2><p class="muted">Toque em Nova anotação para registrar algo aqui.</p></section>';
   html+='<div class="notes-list">'+list.map(x=>{
     const n=x.n;
-    const acts=ntAsk===n.id
-      ?'<div class="confirm"><p>Apagar este item? Isso não pode ser desfeito.</p><div class="row"><button class="btn btn-danger" data-act="nt-del-yes" data-id="'+n.id+'">Apagar</button><button class="btn btn-ghost" data-act="nt-no">Cancelar</button></div></div>'
-      :'<div class="row"><button class="btn btn-soft" data-act="nt-edit" data-id="'+n.id+'">Editar</button><button class="btn btn-quiet" data-act="nt-del" data-id="'+n.id+'">Apagar</button></div>';
+    const acts='<div class="row"><button class="btn btn-soft" data-act="nt-edit" data-id="'+n.id+'">Editar</button><button class="btn btn-quiet" data-act="nt-del" data-id="'+n.id+'">Apagar</button></div>';
     const hl=n.type==='destaque'?' style="--hl:'+HL[n.col||'y']+'"':'';
     return '<article class="note k-'+n.type+'"'+hl+'><div class="note-top"><span class="note-bk">'+esc(n.bookId?bookTitle(n.bookId):'Geral')+'</span>'
       +'<span class="note-meta num">'+(n.page?'pág. '+n.page+' · ':'')+dshort(n.date)+'</span></div>'
@@ -137,9 +135,9 @@ document.addEventListener('click',function(e){
     case 'nt-type':ntType=a.dataset.v;ntAsk=null;render();break;
     case 'nt-kind':ntKind=a.dataset.v;ntSync();break;
     case 'nt-col':ntCol=a.dataset.v;ntSync();break;
-    case 'nt-del':ntAsk=id;render();break;
+    case 'nt-del':if(S.notes.some(n=>n.id===id))confirmAction('Apagar anotação?','Esta anotação será apagada do seu perfil.','nt-del-yes','Apagar anotação',id);break;
     case 'nt-no':ntAsk=null;render();break;
-    case 'nt-del-yes':S.notes=S.notes.filter(n=>n.id!==id);ntAsk=null;save();render();toast(['Item apagado']);break;
+    case 'nt-del-yes':S.notes=S.notes.filter(n=>n.id!==id);ntAsk=null;save();closeSheet();render();toast(['Item apagado']);break;
   }
 });
 document.addEventListener('submit',function(e){if(e.target.id==='form-note')saveNote();});

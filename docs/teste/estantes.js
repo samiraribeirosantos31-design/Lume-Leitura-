@@ -61,13 +61,36 @@ function openShelfBook(b){
     +'<p class="det-d">'+summary+'</p><progress class="shelf-progress" max="100" value="'+pct+'" aria-label="Progresso da leitura"></progress>'
     +'<p class="muted">'+b.page+' de '+b.total+' páginas · '+pct+'%</p><div class="row">'
     +(!b.done?'<button class="btn btn-primary" data-act="log" data-id="'+esc(b.id)+'">Registrar leitura</button>':'')
-    +'<button class="btn btn-ghost" data-act="close">Fechar</button><button class="btn btn-quiet" data-act="bk-remove" data-id="'+esc(b.id)+'">Remover da estante</button></div>');
+    +'<button class="btn btn-ghost" data-act="bk-menu" data-id="'+esc(b.id)+'">Mais opções</button>'
+    +'<button class="btn btn-quiet" data-act="close">Fechar</button></div>');
   paintShelfCovers();
 }
 function shelfTile(b){
-  return '<button class="shelf-tile" data-act="bk-details" data-id="'+esc(b.id)+'">'+shelfCover(b)
+  const id=esc(b.id);
+  return '<div class="shelf-entry"><button class="shelf-tile" data-act="bk-details" data-hold="book" data-id="'+id+'">'+shelfCover(b)
     +'<strong>'+esc(b.title)+'</strong><span>'+esc(b.author||shelfLabel(b))+'</span>'
-    +'<small>'+b.page+' de '+b.total+' páginas</small></button>';
+    +'<small>'+b.page+' de '+b.total+' páginas</small></button>'
+    +'<button class="shelf-menu" data-act="bk-menu" data-id="'+id+'" aria-label="Opções de '+esc(b.title)+'">⋯</button></div>';
+}
+function shelfMenu(b){
+  const id=esc(b.id);
+  openSheet('<h2 id="sh-t">'+esc(b.title)+'</h2><div class="shelf-action-list">'
+    +(!b.done?'<button class="btn btn-primary" data-act="tm-quick" data-id="'+id+'">Iniciar leitura</button>':'')
+    +'<button class="btn btn-soft" data-act="bk-move" data-id="'+id+'">Mover livro</button>'
+    +'<button class="btn btn-soft" data-act="bk-share" data-id="'+id+'">Compartilhar livro</button>'
+    +'<button class="btn btn-ghost" data-act="rm" data-id="'+id+'">Remover da estante</button>'
+    +'<button class="btn btn-quiet" data-act="close">Fechar</button></div>',null,'sheet-center');
+}
+function shelfMove(b,target){
+  if(target==='done'){
+    if(!b.done)b.pageBeforeShelfCompletion=b.page;
+    b.page=b.total;b.done=true;
+    if(S.timer?.bookId===b.id)S.timer=null;
+  }else{
+    if(b.done){b.page=Math.min(b.total,Math.max(0,b.pageBeforeShelfCompletion||0));delete b.pageBeforeShelfCompletion;}
+    b.done=false;b.shelf=target;
+  }
+  save();closeSheet();render();toast(['Movido para '+shelfLabel(b)]);
 }
 viewBooks=function(){
   const top='<div class="row"><button class="btn btn-primary" data-act="go-search">'+ic('i-search')+' Buscar livros</button><button class="btn btn-ghost" data-act="add">'+ic('i-plus')+' Adicionar livro</button></div>';
@@ -79,8 +102,7 @@ viewBooks=function(){
     if(!books.length)return shelfFilter==='all'?'':'<p class="muted">Nenhum livro nesta seção.</p>';
     return '<section><h2 class="sec">'+label+' ('+books.length+')</h2><div class="shelf-grid">'+books.map(shelfTile).join('')+'</div></section>';
   }).join('');
-  const removal=ask?.startsWith('rm:')?S.books.find(b=>b.id===ask.slice(3)):null;
-  return top+(removal?'<section class="card"><p>Remover “'+esc(removal.title)+'” da estante?</p><div class="row"><button class="btn btn-danger" data-act="rm-yes" data-id="'+esc(removal.id)+'">Remover</button><button class="btn btn-ghost" data-act="ask-no">Cancelar</button></div></section>':'')+'<div class="fchips">'+filters+'</div>'+sections;
+  return top+'<div class="fchips">'+filters+'</div>'+sections;
 };
 const _submitLog2=submitLog;
 submitLog=function(){
@@ -94,6 +116,15 @@ document.addEventListener('click',function(e){
   const b=S.books.find(x=>x.id===a.dataset.id);
   if(a.dataset.act==='bk-details'&&b)openShelfBook(b);
   if(a.dataset.act==='bk-filter'){shelfFilter=a.dataset.v;render();}
-  if(a.dataset.act==='bk-remove'&&b){closeSheet();ask='rm:'+b.id;render();window.scrollTo(0,0);}
+  if(a.dataset.act==='bk-menu'&&b)shelfMenu(b);
+  if(a.dataset.act==='bk-move'&&b){
+    const id=esc(b.id);
+    const options=[['read','Lendo'],['want','Quero ler'],['done','Concluídos']].filter(([,label])=>label!==shelfLabel(b));
+    openSheet('<h2 id="sh-t">Mover para</h2><p>'+esc(b.title)+'</p><div class="shelf-action-list">'
+      +options.map(([key,label])=>'<button class="btn btn-soft" data-act="bk-move-to" data-id="'+id+'" data-v="'+key+'">'+label+'</button>').join('')
+      +'<button class="btn btn-quiet" data-act="close">Cancelar</button></div>',null,'sheet-center');
+  }
+  if(a.dataset.act==='bk-move-to'&&b&&['read','want','done'].includes(a.dataset.v))shelfMove(b,a.dataset.v);
+  if(a.dataset.act==='bk-share'&&b)shareReadingCard(b);
   if(a.dataset.act==='go-search'){tab='search';render();window.scrollTo(0,0);}
 });

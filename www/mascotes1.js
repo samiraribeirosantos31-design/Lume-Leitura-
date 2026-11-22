@@ -1,5 +1,5 @@
 /* Mascotes (parte 1): base comum e bichinhos de corpo redondo */
-const MASC=[['coruja','Coruja'],['gato','Gato'],['cachorro','Cachorro'],['coelho','Coelho'],['panda','Panda'],['urso','Urso'],['raposa','Raposa'],['porquinho','Porquinho'],['pinguim','Pinguim'],['tigre','Tigre'],['leao','Leão'],['onca','Onça'],['borboleta','Borboleta']];
+const MASC=[['coruja','Coruja'],['gato','Gato'],['cachorro','Cachorro'],['coelho','Coelho'],['panda','Panda'],['urso','Urso'],['raposa','Raposa'],['porquinho','Porquinho'],['pinguim','Pinguim'],['tigre','Tigre'],['leao','Leão'],['onca','Onça'],['borboleta','Borboleta'],['capivara','Capivara'],['axolote','Axolote'],['lontra','Lontra']];
 const _petCoruja=pet;
 const AN={};
 const spk=(x,y,s)=>'<path d="M0-9Q0 0 9 0Q0 0 0 9Q0 0-9 0Q0 0 0-9Z" transform="translate('+x+' '+y+') scale('+s+')" fill="var(--accent)"/>';
@@ -8,6 +8,7 @@ const svgHead=(st)=>'<svg viewBox="0 0 200 200" role="img" aria-label="'+esc(S.p
 const stk=(c,w)=>'fill="none" stroke="'+c+'" stroke-width="'+(w||3)+'" stroke-linecap="round" stroke-linejoin="round"';
 
 function eyesOf(mood,c){
+  if(mood==='blink')return '<path d="M65 103q13 12 26 0m18 0q13 12 26 0" '+stk(c.arc||'var(--pupil)',4)+'/>';
   if(mood==='happy')return '<path d="M64 108Q78 90 92 108" '+stk(c.arc||'var(--pupil)',5)+'/><path d="M108 108Q122 90 136 108" '+stk(c.arc||'var(--pupil)',5)+'/>';
   let o='<circle cx="78" cy="104" r="15" fill="var(--eye)"/><circle cx="122" cy="104" r="15" fill="var(--eye)"/>'
    +'<circle cx="80" cy="106" r="7" fill="var(--pupil)"/><circle cx="124" cy="106" r="7" fill="var(--pupil)"/>'
@@ -29,6 +30,7 @@ function petAnimal(kind,stage,mood){
   o+=c.mark();
   o+=eyesOf(mood,c);
   o+=c.face();
+  if(mood==='speak')o+='<ellipse cx="100" cy="138" rx="8" ry="6" fill="var(--pupil)"/>';
   o+='<circle cx="60" cy="126" r="6" fill="var(--blush)" opacity=".5"/><circle cx="140" cy="126" r="6" fill="var(--blush)" opacity=".5"/>';
   if(stage>=3)o+='<circle cx="78" cy="104" r="19" '+stk('var(--pupil)',4)+'/><circle cx="122" cy="104" r="19" '+stk('var(--pupil)',4)+'/><path d="M97 104h6" '+stk('var(--pupil)',4)+'/>';
   if(stage>=2)o+='<path d="M58 152Q80 144 100 154Q120 144 142 152L142 180Q120 172 100 182Q80 172 58 180Z" fill="var(--accent)"/>'

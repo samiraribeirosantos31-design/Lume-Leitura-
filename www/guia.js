@@ -6,7 +6,7 @@ const passos=[
   ['books','Acompanhe a estante','Em Livros, veja suas capas e o progresso de páginas em cada livro.'],
   ['notes','Guarde suas ideias','Em Notas, salve reflexões, citações e páginas para consultar depois.'],
   ['ach','Acompanhe as recompensas','Em Conquistas, veja os selos que ganhou. Em Hoje, acompanhe a evolução do mascote.'],
-  ['settings','Deixe o Lume com a sua cara','Abra Ajustes no canto superior para personalizar o mascote, mudar a cor ou gerenciar a conta.']
+  ['settings','Deixe o Lume com a sua cara','Use a engrenagem para mudar a cor, acessar a conta e fazer backup. Segure o mascote por dois segundos para personalizá-lo.']
 ];
 let passoGuia=-1;
 const chaveGuia=()=>stateKey+':guia';
@@ -59,9 +59,10 @@ if(guia?.showModal){
     passoGuia=-1;
     mostrarGuia('<div class="guia-passo"><h2 id="guia-titulo">Boas-vindas ao Lume Leitura</h2>'
       +'<p>Organize seus livros e acompanhe seu ritmo de leitura.</p><div class="row">'
-      +(nvOk()?'<button class="btn btn-primary" data-act="guia-login">Entrar ou criar conta</button>':'')
-      +'<button class="btn '+(nvOk()?'btn-ghost':'btn-primary')+'" data-act="guia-local">Continuar sem login</button></div>'
-      +'<p class="hint">Sem login, seus dados ficam neste aparelho.</p></div>');
+      +'<button class="btn btn-primary" data-act="guia-login">Entrar ou criar conta</button>'
+      +'<button class="btn btn-ghost" data-act="guia-local">Continuar sem login</button></div>'
+      +'<p class="hint">Com uma conta, você pode recuperar seu progresso em outro aparelho. Sem login, ele fica neste celular.</p>'
+      +(!nvOk()?'<p class="hint">A sincronização da conta ainda não está disponível nesta versão.</p>':'')+'</div>');
   }
   if(!terminouGuia()){
     let restaurando=false;

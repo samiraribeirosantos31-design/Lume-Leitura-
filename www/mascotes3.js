@@ -26,3 +26,15 @@ AN.pinguim={fur:'#2D3447',belly:'#FFFFFF',feet:'#FFB02E',lid:'#FFFFFF',
   back:()=>'<ellipse cx="34" cy="124" rx="12" ry="28" transform="rotate(14 34 124)" fill="#2D3447"/><ellipse cx="166" cy="124" rx="12" ry="28" transform="rotate(-14 166 124)" fill="#2D3447"/>',
   mark:()=>'<path d="M100 76C70 72 52 94 56 118C60 140 84 148 100 148C116 148 140 140 144 118C148 94 130 72 100 76Z" fill="#FFFFFF"/>',
   face:()=>'<path d="M89 120Q100 111 111 120Q100 135 89 120Z" fill="#FFB02E"/>'};
+
+AN.capivara={fur:'#AC7951',belly:'#E3B989',feet:'#7B4F35',
+  back:()=>earsRound('#AC7951','#8B5B43',65,13),mark:()=>'',
+  face:()=>'<ellipse cx="100" cy="130" rx="47" ry="22" fill="#D5A278"/><ellipse cx="100" cy="122" rx="15" ry="8" fill="#6A4534"/>'+mouth('#6A4534')};
+AN.axolote={fur:'#FFBFD5',belly:'#FFE8F2',feet:'#E992B5',
+  back:()=>'<path d="M52 99 27 76m26 33-30-3m29 13-25 12m121-32 25-23m-26 33 30-3m-29 13 25 12" stroke="#DC699C" stroke-width="11" stroke-linecap="round"/>',
+  mark:()=>'<circle cx="63" cy="119" r="5" fill="#DC699C"/><circle cx="137" cy="119" r="5" fill="#DC699C"/>',
+  face:()=>'<path d="M86 126q14 17 28 0" '+stk('#94476F',4)+'/>'};
+AN.lontra={fur:'#986B52',belly:'#F6DEBC',feet:'#6A4836',
+  back:()=>earsRound('#986B52','#D6A47E',64,16)+'<path d="M145 169q41 9 32-26" '+stk('#986B52',15)+'/>',
+  mark:()=>'',
+  face:()=>'<ellipse cx="100" cy="129" rx="30" ry="19" fill="#F6DEBC"/><ellipse cx="100" cy="120" rx="11" ry="6" fill="#654333"/>'+mouth('#654333')+whisk('#654333')};

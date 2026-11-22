@@ -106,7 +106,9 @@ function pet(stage,mood){
   if(stage>=2)o+='<path d="M56 72L62 42L86 62Z" fill="var(--pet-deep)"/><path d="M144 72L138 42L114 62Z" fill="var(--pet-deep)"/>';
   o+='<ellipse cx="100" cy="116" rx="64" ry="60" fill="var(--pet)"/><ellipse cx="100" cy="138" rx="40" ry="34" fill="var(--pet-belly)"/>';
   o+='<ellipse cx="74" cy="178" rx="15" ry="7" fill="var(--pet-deep)"/><ellipse cx="126" cy="178" rx="15" ry="7" fill="var(--pet-deep)"/>';
-  if(mood==='happy'){
+  if(mood==='blink'){
+    o+='<path d="M65 103q13 12 26 0m18 0q13 12 26 0" fill="none" stroke="var(--pupil)" stroke-width="4" stroke-linecap="round"/>';
+  }else if(mood==='happy'){
     o+='<path d="M64 108Q78 90 92 108" fill="none" stroke="var(--pupil)" stroke-width="5" stroke-linecap="round"/><path d="M108 108Q122 90 136 108" fill="none" stroke="var(--pupil)" stroke-width="5" stroke-linecap="round"/>';
   }else{
     o+='<circle cx="78" cy="104" r="15" fill="var(--eye)"/><circle cx="122" cy="104" r="15" fill="var(--eye)"/>'
@@ -116,6 +118,7 @@ function pet(stage,mood){
   }
   if(stage>=3)o+='<circle cx="78" cy="104" r="19" fill="none" stroke="var(--pupil)" stroke-width="4"/><circle cx="122" cy="104" r="19" fill="none" stroke="var(--pupil)" stroke-width="4"/><path d="M97 104h6" stroke="var(--pupil)" stroke-width="4"/>';
   o+='<path d="M93 118L107 118L100 129Z" fill="var(--accent)"/><circle cx="60" cy="124" r="6" fill="var(--blush)" opacity=".55"/><circle cx="140" cy="124" r="6" fill="var(--blush)" opacity=".55"/>';
+  if(mood==='speak')o+='<ellipse cx="100" cy="132" rx="7" ry="5" fill="var(--pupil)"/>';
   if(stage===3)o+='<path d="M52 58L100 35L148 58L100 76Z" fill="var(--pet-deep)"/><path d="M144 59v23" stroke="var(--accent)" stroke-width="5"/>';
   if(stage===4)o+='<path d="M54 32L78 45L100 17L122 45L146 32L137 67H63Z" fill="#f8c54d" stroke="#704923" stroke-width="3"/>';
   if(stage>=2)o+='<path d="M58 150Q80 142 100 152Q120 142 142 150L142 178Q120 170 100 180Q80 170 58 178Z" fill="var(--accent)"/>'

@@ -28,14 +28,14 @@ function harness(options={}){
    return {ok:true,json:async()=>options.release||{body:'LUME_BUILD_CODE=111 LUME_VERSION=1.1.1',assets:[{name:'app-debug.apk'}]}};}
  };
  ctx.window=ctx;
- if(options.native)ctx.Capacitor={isNativePlatform:()=>true,Plugins:{LocalNotifications:notifications,Browser:{open:async({url})=>opened.push(url)}}};
+ if(options.native)ctx.Capacitor={isNativePlatform:()=>true,Plugins:{LocalNotifications:notifications,Browser:{open:async({url})=>opened.push(url)},ReadingTimer:options.readingTimer}};
  vm.createContext(ctx);
  files.forEach(f=>{
   vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f});
   if(f==='nuvem-config.js'&&options.config)ctx.NUVEM=options.config;
  });
  const evaluate=code=>vm.runInContext(code,ctx);
- const click=async act=>{const a={dataset:{act}};for(const f of events.click||[])await f({target:{closest:s=>s==='[data-act]'?a:null}});};
+ const click=async (act,dataset={})=>{const a={dataset:{act,...dataset}};for(const f of events.click||[])await f({target:{closest:s=>s==='[data-act]'?a:null}});};
  return {evaluate,click,elements,storage,scheduled,opened,callbacks,calls:()=>calls};
 }
 async function settle(){for(let i=0;i<20;i++)await Promise.resolve();}
@@ -155,4 +155,53 @@ test('reabre a cópia do último perfil offline e marca as mudanças pendentes',
  assert.equal(JSON.parse(h.storage.get(account)).petName,'Alteração offline');
  assert.equal(JSON.parse(h.storage.get(key)).petName,'Local');
  assert.equal(JSON.parse(h.storage.get(account+':sync')).pending,true);
+});
+
+
+test('duração separa horas de minutos e recusa campo maior que 59',()=>{
+ const h=harness();
+ h.elements.set('f-hours',{value:'1'});h.elements.set('f-min',{value:'25'});
+ assert.equal(h.evaluate('formReadingMinutes()'),85);
+ h.elements.get('f-min').value='60';
+ assert.equal(Number.isNaN(h.evaluate('formReadingMinutes()')),true);
+});
+test('remoção usa confirmação central e preserva os registros de leitura',async()=>{
+ const h=harness();
+ h.evaluate("S.books=[{id:'b',title:'Meu livro',page:10,total:100}];S.logs=[{id:'l',bookId:'b',min:12}];");
+ await h.click('rm',{id:'b'});
+ assert.match(h.elements.get('sheet-root').innerHTML,/sheet-center/);
+ assert.equal(h.evaluate('S.books.length'),1);
+ await h.click('rm-yes',{id:'b'});
+ assert.equal(h.evaluate('S.books.length'),0);
+ assert.equal(h.evaluate('S.logs.length'),1);
+});
+test('mudar de estante preserva o histórico e o ponto de leitura original',()=>{
+ const h=harness();
+ h.evaluate("S.books=[{id:'b',title:'Meu livro',page:28,total:100}];shelfMove(S.books[0],'done');");
+ assert.equal(h.evaluate('S.books[0].done'),true);
+ assert.equal(h.evaluate('S.books[0].page'),100);
+ h.evaluate("shelfMove(S.books[0],'read');");
+ assert.equal(h.evaluate('S.books[0].page'),28);
+ assert.equal(h.evaluate('S.logs.length'),0);
+});
+test('luz noturna fica na sessão e ações nativas recuperam o cronômetro',async()=>{
+ let state;
+ const plugin={publish:async({session})=>{state=session;},read:async()=>({session:state}),clear:async()=>{state=null;}};
+ const h=harness({native:true,readingTimer:plugin});
+ h.evaluate("S.books=[{id:'b',title:'Meu livro',page:10,total:100}];startReadingTimer('b');");
+ await settle();
+ assert.equal(state.running,true);
+ await h.click('tm-night');
+ assert.match(h.elements.get('sheet-root').innerHTML,/reading-dim/);
+ assert.equal(h.evaluate('temaAtual().id'),'lilas');
+ state={...state,running:false,fin:true,acc:61000,changedAt:state.changedAt+1000};
+ await h.evaluate('readNativeTimer()');
+ assert.equal(h.evaluate('S.timer.fin'),true);
+ assert.equal(h.evaluate('tmMs()'),61000);
+});
+test('trechos são dos livros correspondentes e a legenda leva ao download oficial',()=>{
+ const h=harness();
+ assert.equal(h.evaluate("bookQuotes({id:'b',title:'Quincas Borba',author:'Machado de Assis'}).length"),1);
+ assert.equal(h.evaluate("bookQuotes({id:'b',title:'Obra desconhecida'}).length"),0);
+ assert.match(h.evaluate("shareText({title:'Meu livro',author:'Ana',desc:'Descrição'})"),/Descrição.*github\.io/s);
 });

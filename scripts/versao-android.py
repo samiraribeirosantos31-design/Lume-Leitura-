@@ -13,3 +13,10 @@ text = p.read_text()
 if 'android.permission.POST_NOTIFICATIONS' not in text:
     text = text.replace('<application', '<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application', 1)
 p.write_text(text)
+
+from shutil import copyfile
+java_dir = p.parent / 'java/com/lume/leitura'
+for java_file in Path('native/android').glob('*.java'):
+    copyfile(java_file, java_dir / java_file.name)
+receiver = '<receiver android:name=".ReadingTimerReceiver" android:exported="false" />'
+p.write_text(text.replace('</application>', '    ' + receiver + '\n    </application>', 1))

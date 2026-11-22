@@ -1,7 +1,7 @@
 /* Service worker: deixa o app abrir sem internet depois da primeira visita */
-const CACHE='lume-v6';
+const CACHE='lume-v7';
 const ARQ=['./','index.html','style.css','style2.css','extra.css','extra2.css','nuvem-config.js','app1.js','app2.js','app3.js','notas.js','cronometro.js',
-  'mascotes1.js','mascotes2.js','mascotes3.js','ritmo.js','lembrete.js','temas.js','busca.js','estantes.js','backup.js','conta.js','guia.js','manifest.webmanifest','icone.svg','build-info.js','atualizacao.js','atualizacao.css'];
+  'mascotes1.js','mascotes2.js','mascotes3.js','ritmo.js','lembrete.js','temas.js','busca.js','estantes.js','backup.js','conta.js','interacoes.js','guia.js','manifest.webmanifest','icone.svg','build-info.js','atualizacao.js','atualizacao.css'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ARQ)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>/^lume-v[0-9]+$/.test(n)&&n!==CACHE).map(n=>caches.delete(n)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{

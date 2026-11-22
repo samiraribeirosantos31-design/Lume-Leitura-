@@ -28,7 +28,7 @@ function viewToday(){
   }).join('');
   const days=w.map(x=>'<span class="'+(x.today?'t':'')+'">'+(x.today?'hoje':x.d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.',''))+'</span>').join('');
   return ''
-   +'<section class="pet-card"><div class="pet">'+pet(st,mood)+'</div><div><p class="eyebrow">Estágio '+(st+1)+' de 5</p>'
+   +'<section class="pet-card"><button class="pet pet-touch" type="button" data-hold="mascot" data-act="pet-touch" aria-label="Mascote. Segure por dois segundos para personalizar.">'+pet(st,mood)+'</button><div><p class="eyebrow">Estágio '+(st+1)+' de 5</p>'
    +'<h2>'+esc(S.petName)+' <span class="stage">'+STAGES[st]+'</span></h2><p class="mood">'+msg+'</p>'
    +'<div class="xp" role="img" aria-label="'+esc(xpl)+'"><i style="width:'+Math.round(frac*100)+'%"></i></div><p class="xp-l num">'+xpl+'</p></div></section>'
    +'<section class="card goal"><div class="ring-w"><svg viewBox="0 0 120 120" role="img" aria-label="'+mins+' de '+S.goal+' minutos hoje">'

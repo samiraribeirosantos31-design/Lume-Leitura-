@@ -107,3 +107,28 @@ referência do código em revisão. O quadro tem acesso público de leitura.
   NUVEM e publique as regras antes da validação de contas reais.
 - Novo projeto Cloudflare Pages da equipe: lume-leitura-kanban.pages.dev.
   A publicação de dados do quadro depende da configuração de acesso privado.
+
+## Ajustes após o teste no Android
+
+- As paletas tingem fundo, superfícies, bordas e controles. A engrenagem dá
+  acesso a cores, conta, backup, tutoriais e preferências. Segurar o mascote
+  por dois segundos abre suas opções, com alternativa para teclado.
+- Pressionar um livro ou tocar em ⋯ abre ações de estante. A remoção é
+  confirmada no centro, preservando leituras e notas anteriores. Mover para
+  Concluídos manualmente não dá pontos.
+- O registro separa horas de minutos. A luz noturna só aparece na sessão de
+  leitura e é visualmente limitada a essa tela.
+- O módulo nativo ReadingTimer usa uma notificação Android e guarda suas ações
+  localmente. Parar deixa a sessão pronta para preencher a página e registrar
+  depois. Sem permissão de notificação, os controles continuam no app.
+  scripts/versao-android.py instala o código Java no projeto gerado pelo
+  Capacitor. Não edite o diretório android gerado.
+- O compartilhamento Android tenta anexar cartão com capa e resumo ou trecho.
+  O texto contém o link para a página oficial de download. A tela de detalhes
+  e a confirmação não enviam nada sem o usuário escolher pelo painel do sistema.
+- Os trechos vêm dos destaques do usuário e de uma amostra de clássicos em
+  domínio público. Fontes: Dom Casmurro, capítulo XXXII; Quincas Borba,
+  capítulo CXCVIII; Memórias Póstumas de Brás Cubas, capítulo XVII.
+- A primeira tela sempre oferece Entrar ou criar conta e Continuar sem login.
+  O formulário real continua condicionado ao Firebase da equipe. Valide a
+  recuperação do progresso em outro aparelho após configurá-lo.

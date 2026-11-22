@@ -26,12 +26,13 @@ function petBorboleta(stage,mood){
   if(stage>=3)o+='<circle cx="72" cy="108" r="5" fill="var(--pet-belly)"/><circle cx="128" cy="108" r="5" fill="var(--pet-belly)"/>';
   o+='<ellipse cx="100" cy="128" rx="16" ry="50" fill="#3B2F3A"/><circle cx="100" cy="82" r="24" fill="#3B2F3A"/>';
   o+='<path d="M90 62Q82 42 70 38M110 62Q118 42 130 38" '+stk('#3B2F3A',4)+'/><circle cx="70" cy="38" r="5" fill="#3B2F3A"/><circle cx="130" cy="38" r="5" fill="#3B2F3A"/>';
-  if(mood==='happy')o+='<path d="M86 84Q92 76 98 84M102 84Q108 76 114 84" '+stk('#FFFFFF',3.5)+'/>';
+  if(mood==='blink')o+='<path d="M86 81q6 5 12 0m4 0q6 5 12 0" '+stk('#FFFFFF',3)+'/>';
+  else if(mood==='happy')o+='<path d="M86 84Q92 76 98 84M102 84Q108 76 114 84" '+stk('#FFFFFF',3.5)+'/>';
   else{
     o+='<circle cx="91" cy="82" r="7" fill="#FFFFFF"/><circle cx="109" cy="82" r="7" fill="#FFFFFF"/><circle cx="92" cy="83" r="3.5" fill="#141C33"/><circle cx="110" cy="83" r="3.5" fill="#141C33"/>';
     if(mood==='sleepy')o+='<path d="M84 82a7 7 0 0 1 14 0Z" fill="#3B2F3A"/><path d="M102 82a7 7 0 0 1 14 0Z" fill="#3B2F3A"/>';
   }
-  o+='<path d="M94 94Q100 99 106 94" '+stk('#FFFFFF',3)+'/>';
+  o+=mood==='speak'?'<ellipse cx="100" cy="94" rx="4" ry="6" fill="#FFFFFF"/>':'<path d="M94 94Q100 99 106 94" '+stk('#FFFFFF',3)+'/>';
   if(stage>=3)o+='<circle cx="91" cy="82" r="10" '+stk('#FFFFFF',3)+'/><circle cx="109" cy="82" r="10" '+stk('#FFFFFF',3)+'/>';
   if(stage===3)o+='<path d="M73 67L100 53L127 67L100 80Z" fill="var(--pet-deep)"/><path d="M122 69v15" stroke="#f8c54d" stroke-width="3"/>';
   if(stage>=4)o+='<path d="M73 66L81 44L100 56L119 44L127 66Z" fill="#f8c54d" stroke="#704923" stroke-width="3"/>';

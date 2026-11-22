@@ -1,7 +1,7 @@
 /* Backup manual: copiar e restaurar os dados por texto (funciona em qualquer celular) */
-let bkAsk=false;
+let pendingRestore=null;
 function backupHtml(){
-  bkAsk=false;
+  pendingRestore=null;
   return '<div class="zone"><b>Backup manual</b><p>Copie seus dados e guarde em um lugar seguro, como o app de notas do celular. Para restaurar, cole o texto abaixo.</p>'
    +'<div class="row"><button class="btn btn-ghost" type="button" data-act="bk-copy">Copiar meus dados</button></div>'
    +'<label for="bk-t">Restaurar a partir do backup</label><textarea id="bk-t" rows="3" placeholder="Cole aqui o texto do backup"></textarea>'
@@ -18,8 +18,13 @@ document.addEventListener('click',function(e){
   }
   if(a.dataset.act==='bk-imp'){
     let o=null;try{o=JSON.parse(($('#bk-t').value||'').trim());}catch(x){}
-    if(!dadosSeguros(o)){bkAsk=false;return bkMsg('Esse texto não parece um backup do Lume Leitura.');}
-    if(!bkAsk){bkAsk=true;return bkMsg('Isso substitui os dados do perfil atual. Toque em Restaurar de novo para confirmar.');}
-    const antes=S;S=normalizarPerfil(o);if(!save()){S=antes;return bkMsg('Não foi possível salvar neste aparelho.');}applyTema();closeSheet();render();toast(['Dados restaurados']);
+    if(!dadosSeguros(o))return bkMsg('Esse texto não parece um backup do Lume Leitura.');
+    pendingRestore={data:o,profile:stateKey};
+    confirmAction('Restaurar backup?','O backup substituirá os dados do perfil atual.','bk-imp-yes','Restaurar backup');
+  }
+  if(a.dataset.act==='bk-imp-yes'&&pendingRestore?.profile===stateKey){
+    const antes=S;S=normalizarPerfil(pendingRestore.data);pendingRestore=null;
+    if(!save()){S=antes;closeSheet();return toast(['Não foi possível salvar neste aparelho.']);}
+    applyTema();closeSheet();render();toast(['Dados restaurados']);
   }
 });

@@ -1,5 +1,6 @@
-let tmBook=null, tmAsk=false;
-const tmMs=()=>{const t=S.timer;return t?t.acc+(t.running?Date.now()-t.t0:0):0;};
+let tmBook=null;
+let readingDim=false;
+const tmMs=()=>{const t=S.timer;return t?t.acc+(t.running?Math.max(0,Date.now()-t.t0):0):0;};
 const fmtT=ms=>{
   const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;
   return h?h+':'+pad(m)+':'+pad(r):pad(m)+':'+pad(r);
@@ -17,14 +18,11 @@ function tmCard(){
       +'<button class="btn btn-soft btn-block" data-act="tm-start">'+ic('i-today')+' Iniciar leitura</button></section>';
   }
   const bk=S.books.find(b=>b.id===t.bookId);
-  const disc=tmAsk
-    ?'<div class="confirm"><p>Descartar este tempo sem registrar?</p><div class="row"><button class="btn btn-danger" data-act="tm-discard-yes">Descartar</button><button class="btn btn-ghost" data-act="tm-no">Voltar</button></div></div>'
-    :'<button class="btn btn-quiet" data-act="tm-discard">Descartar</button>';
-  return '<section class="card tm on"><p class="eyebrow">'+(t.running?'Lendo agora':'Pausado')+'</p>'
+  return '<section class="card tm on"><p class="eyebrow">'+(t.running?'Lendo agora':t.fin?'Pronto para registrar':'Pausado')+'</p>'
     +'<div class="tm-disp num" id="tm-disp" role="timer">'+fmtT(tmMs())+'</div>'
     +'<p class="muted">'+esc(bk?bk.title:'Livro removido')+'</p>'
-    +'<div class="row"><button class="btn btn-primary" data-act="'+(t.running?'tm-pause':'tm-resume')+'">'+(t.running?'Pausar':'Retomar')+'</button>'
-    +'<button class="btn btn-soft" data-act="tm-finish">Finalizar e registrar</button></div>'+disc+'</section>';
+    +'<div class="row"><button class="btn btn-primary" data-act="tm-open">'+(t.fin?'Registrar leitura':'Abrir sessão')+'</button>'
+    +'<button class="btn btn-quiet" data-act="tm-discard">Descartar</button></div></section>';
 }
 
 function rhythmCard(){
@@ -64,41 +62,131 @@ viewToday=function(){
   const h=_viewToday(),key='<section class="card"><div class="chart-h">',i=h.indexOf(key),extra=tmCard()+rhythmCard();
   return i>=0?h.slice(0,i)+extra+h.slice(i):h+extra;
 };
+const readingPlugin=()=>window.Capacitor?.Plugins?.ReadingTimer;
+let visibleTimer=null, timerNativeOps=Promise.resolve();
+function timerBridge(action,params){
+  const plugin=readingPlugin();if(!plugin)return Promise.resolve(null);
+  const operation=timerNativeOps.then(()=>plugin[action](params));
+  timerNativeOps=operation.catch(()=>null);
+  return timerNativeOps;
+}
+function publishTimer(){
+  const t=S.timer;if(!t?.id)return;
+  const title=S.books.find(b=>b.id===t.bookId)?.title||'Lume Leitura';
+  timerBridge('publish',{session:{...t,title,notify:S.timerAlerts!==false}});
+}
+function stampTimer(t){t.changedAt=Math.max(Date.now(),(t.changedAt||0)+1);}
+function trackTimer(){
+  const t=S.timer;
+  if(t&&!t.id){t.id=uid();stampTimer(t);save();}
+  const previous=visibleTimer;
+  if(previous===(t?.id||null))return;
+  visibleTimer=t?.id||null;
+  if(previous)timerBridge('clear',{id:previous});
+  if(t)readNativeTimer(true);
+}
+async function readNativeTimer(publishMissing=false){
+  const before=S.timer,profile=stateKey;
+  if(!readingPlugin()||!before?.id)return;
+  const result=await timerBridge('read');
+  if(stateKey!==profile||S.timer!==before)return;
+  const incoming=result?.session;
+  if(incoming?.id===before.id&&incoming.changedAt>before.changedAt){
+    const {t0,acc,running,fin,changedAt}=incoming;
+    if(!Number.isFinite(acc)||!Number.isFinite(t0))return;
+    Object.assign(before,{t0,acc,running,fin,changedAt});
+    save();render();
+    if($('#tm-focus-time'))openTimerPanel();
+  }else if(publishMissing)publishTimer();
+}
+function openTimerPanel(){
+  const t=S.timer,b=S.books.find(x=>x.id===t?.bookId);
+  if(!t||!b)return;
+  if(t.fin){openTimerLog();return;}
+  openSheet('<h2 id="sh-t">'+esc(b.title)+'</h2><p class="muted">'+(t.running?'Sessão em andamento':'Sessão pausada')+'</p>'
+    +'<div class="tm-disp num" id="tm-focus-time" role="timer">'+fmtT(tmMs())+'</div>'
+    +'<div class="row"><button class="btn btn-primary" data-act="'+(t.running?'tm-pause':'tm-resume')+'">'+(t.running?'Pausar':'Continuar')+'</button>'
+    +'<button class="btn btn-soft" data-act="tm-finish">Parar e registrar</button></div>'
+    +'<div class="row"><button class="btn btn-ghost" aria-pressed="'+readingDim+'" data-act="tm-night">'+(readingDim?'Desativar luz noturna':'Ativar luz noturna')+'</button>'
+    +'<button class="btn btn-quiet" data-act="close">Voltar ao app</button></div>',null,'reading-focus'+(readingDim?' reading-dim':''));
+}
+function openTimerLog(){
+  const t=S.timer;
+  if(!t||!S.books.some(b=>b.id===t.bookId&&!b.done))return;
+  openLog(t.bookId);
+  fillReadingMinutes(Math.min(600,Math.max(1,Math.round(tmMs()/60000))));
+  const hint=$('#f-hint');if(hint)hint.textContent+=' Tempo cronometrado: '+fmtT(tmMs())+'.';
+}
+function startReadingTimer(bookId){
+  const book=S.books.find(b=>b.id===bookId&&!b.done);if(!book)return;
+  if(S.timer){openTimerPanel();return;}
+  tmBook=bookId;readingDim=false;
+  S.timer={id:uid(),bookId,t0:Date.now(),acc:0,running:true,fin:false};
+  stampTimer(S.timer);save();render();openingReadingQuote(bookId);openTimerPanel();
+}
 const _submitLog=submitLog;
 submitLog=function(){
-  const n=S.logs.length;
+  const n=S.logs.length, pending=S.timer?.fin?S.timer:null;
   _submitLog();
-  if(S.logs.length>n&&S.timer&&S.timer.fin){
-    S.logs[S.logs.length-1].t=1;
-    S.timer=null;tmAsk=false;save();render();
+  if(S.logs.length>n){
+    const entry=S.logs.at(-1);
+    if(pending?.bookId===entry.bookId){
+      entry.t=1;S.timer=null;readingDim=false;save();render();
+    }
+    openingReadingQuote(entry.bookId);
   }
 };
-
-document.addEventListener('click',function(e){
+const timerSettings=openSettings;
+openSettings=function(){
+  timerSettings();
+  if(readingPlugin())$('#wipe-zone')?.insertAdjacentHTML('beforebegin','<button class="btn btn-soft btn-block" data-act="tm-alerts">Controles nas notificações: '+(S.timerAlerts===false?'desativados':'ativados')+'</button>');
+};
+document.addEventListener('click',async function(e){
   const a=e.target.closest('[data-act]');if(!a)return;
-  const act=a.dataset.act,t=S.timer;
+  const act=a.dataset.act;
+  if(act==='goal-apply'){S.goal=parseInt(a.dataset.v,10);save();render();toast(['Meta diária: '+S.goal+' min']);return;}
+  if(!act.startsWith('tm-'))return;
+  if(act==='tm-start'||act==='tm-quick'){startReadingTimer(act==='tm-quick'?a.dataset.id:$('#tm-book')?.value);return;}
+  if(act==='tm-alerts'){
+    const permissions=window.Capacitor?.Plugins?.LocalNotifications;
+    let granted=false;
+    try{
+      const status=await permissions?.checkPermissions();
+      granted=status?.display==='granted';
+      if(!granted)granted=(await permissions?.requestPermissions())?.display==='granted';
+      else S.timerAlerts=S.timerAlerts===false;
+      if(!granted)return toast(['Ative as notificações do Lume nas configurações do Android.']);
+      if(status?.display!=='granted')S.timerAlerts=true;
+      save();publishTimer();openSettings();
+    }catch(e){toast(['Não foi possível alterar as notificações.']);}
+    return;
+  }
+  const before=S.timer;
+  if(!before)return;
+  await readNativeTimer();
+  const t=S.timer;if(t!==before)return;
   switch(act){
-    case 'tm-start':{
-      const sel=$('#tm-book');if(!sel||!sel.value)break;
-      tmBook=sel.value;S.timer={bookId:sel.value,t0:Date.now(),acc:0,running:true,fin:false};save();render();break;
-    }
-    case 'tm-pause':if(t&&t.running){t.acc+=Date.now()-t.t0;t.running=false;save();render();}break;
-    case 'tm-resume':if(t&&!t.running){t.t0=Date.now();t.running=true;t.fin=false;save();render();}break;
-    case 'tm-finish':{
-      if(!t)break;
-      const ms=tmMs();t.acc=ms;t.running=false;t.fin=true;save();render();
-      openLog(t.bookId);
-      const fm=$('#f-min');
-      if(fm){fm.value=Math.min(600,Math.max(1,Math.round(ms/60000)));preview();}
-      const h=$('#f-hint');if(h)h.textContent+=' Tempo cronometrado: '+fmtT(ms)+'.';
+    case 'tm-open':openTimerPanel();break;
+    case 'tm-night':if(!t.fin){readingDim=!readingDim;openTimerPanel();}break;
+    case 'tm-pause':
+      if(t.running){t.acc=tmMs();t.running=false;stampTimer(t);save();render();publishTimer();openTimerPanel();}
       break;
-    }
-    case 'tm-discard':tmAsk=true;render();break;
-    case 'tm-no':tmAsk=false;render();break;
-    case 'tm-discard-yes':S.timer=null;tmAsk=false;save();render();toast(['Cronômetro descartado']);break;
-    case 'goal-apply':S.goal=parseInt(a.dataset.v,10);save();render();toast(['Meta diária: '+S.goal+' min']);break;
+    case 'tm-resume':
+      if(!t.running&&!t.fin){t.t0=Date.now();t.running=true;stampTimer(t);save();render();publishTimer();openTimerPanel();}
+      break;
+    case 'tm-finish':
+      t.acc=tmMs();t.running=false;t.fin=true;readingDim=false;stampTimer(t);save();render();publishTimer();openTimerLog();break;
+    case 'tm-discard':
+      confirmAction('Descartar cronômetro?','O tempo desta sessão não será registrado.','tm-discard-yes','Descartar tempo',t.id);break;
+    case 'tm-discard-yes':
+      if(a.dataset.id!==t.id)return;
+      S.timer=null;readingDim=false;save();closeSheet();render();toast(['Cronômetro descartado']);break;
   }
 });
 document.addEventListener('change',function(e){if(e.target.id==='tm-book')tmBook=e.target.value;});
-setInterval(function(){const el=$('#tm-disp');if(el&&S.timer)el.textContent=fmtT(tmMs());},500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)readNativeTimer();});
+window.addEventListener('focus',()=>readNativeTimer());
+setInterval(function(){
+  for(const id of ['#tm-disp','#tm-focus-time']){const el=$(id);if(el&&S.timer)el.textContent=fmtT(tmMs());}
+},500);
 render();
