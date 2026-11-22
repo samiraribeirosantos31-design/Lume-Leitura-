@@ -90,3 +90,4 @@ a.btn{text-decoration:none;color:var(--ink)}
 @keyframes center-pop{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.sheet.sheet-center{animation:none}}
 .chip[aria-pressed="true"]{color:var(--on-pet,#fff)}
+.pet-quote{grid-column:1/-1}

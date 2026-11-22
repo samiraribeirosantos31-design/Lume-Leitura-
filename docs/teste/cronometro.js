@@ -63,7 +63,7 @@ viewToday=function(){
   return i>=0?h.slice(0,i)+extra+h.slice(i):h+extra;
 };
 const readingPlugin=()=>window.Capacitor?.Plugins?.ReadingTimer;
-let visibleTimer=null, timerNativeOps=Promise.resolve();
+let visibleTimer, timerNativeOps=Promise.resolve();
 function timerBridge(action,params){
   const plugin=readingPlugin();if(!plugin)return Promise.resolve(null);
   const operation=timerNativeOps.then(()=>plugin[action](params));
@@ -83,6 +83,7 @@ function trackTimer(){
   if(previous===(t?.id||null))return;
   visibleTimer=t?.id||null;
   if(previous)timerBridge('clear',{id:previous});
+  else if(!t)timerBridge('hide');
   if(t)readNativeTimer(true);
 }
 async function readNativeTimer(publishMissing=false){
@@ -139,7 +140,7 @@ submitLog=function(){
 const timerSettings=openSettings;
 openSettings=function(){
   timerSettings();
-  if(readingPlugin())$('#wipe-zone')?.insertAdjacentHTML('beforebegin','<button class="btn btn-soft btn-block" data-act="tm-alerts">Controles nas notificações: '+(S.timerAlerts===false?'desativados':'ativados')+'</button>');
+  if(readingPlugin())$('#wipe-zone')?.insertAdjacentHTML('beforebegin','<button class="btn btn-soft btn-block" data-act="tm-alerts">Cronômetro nas notificações: '+(S.timerAlerts===false?'desativado':'preferência ativa')+'</button>');
 };
 document.addEventListener('click',async function(e){
   const a=e.target.closest('[data-act]');if(!a)return;
