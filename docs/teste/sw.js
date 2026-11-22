@@ -1,5 +1,5 @@
 /* Service worker: deixa o app abrir sem internet depois da primeira visita */
-const CACHE='lume-v8';
+const CACHE='lume-v9';
 const ARQ=['./','index.html','style.css','style2.css','extra.css','extra2.css','evolucao.css','evolucao.js','mascotes4.js','mascote-painel.js','ajustes.js','nuvem-config.js','app1.js','app2.js','app3.js','notas.js','cronometro.js',
   'mascotes1.js','mascotes2.js','mascotes3.js','ritmo.js','lembrete.js','temas.js','busca.js','estantes.js','backup.js','conta.js','interacoes.js','guia.js','manifest.webmanifest','icone.svg','build-info.js','atualizacao.js','atualizacao.css'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ARQ)).then(()=>self.skipWaiting()));});

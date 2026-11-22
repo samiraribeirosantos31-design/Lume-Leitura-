@@ -35,7 +35,7 @@ function harness(options={}){
   if(f==='nuvem-config.js'&&options.config)ctx.NUVEM=options.config;
  });
  const evaluate=code=>vm.runInContext(code,ctx);
- const click=async (act,dataset={})=>{const a={dataset:{act,...dataset}};for(const f of events.click||[])await f({target:{closest:s=>s==='[data-act]'?a:null}});};
+ const click=async (act,dataset={})=>{const a={dataset:{act,...dataset},setAttribute(){}};for(const f of events.click||[])await f({target:{closest:s=>s==='[data-act]'?a:null}});};
  return {evaluate,click,elements,storage,scheduled,opened,callbacks,calls:()=>calls};
 }
 async function settle(){for(let i=0;i<20;i++)await Promise.resolve();}
@@ -184,20 +184,64 @@ test('mudar de estante preserva o histórico e o ponto de leitura original',()=>
  assert.equal(h.evaluate('S.books[0].page'),28);
  assert.equal(h.evaluate('S.logs.length'),0);
 });
-test('luz noturna fica na sessão e ações nativas recuperam o cronômetro',async()=>{
- let state;
- const plugin={publish:async({session})=>{state=session;},read:async()=>({session:state}),clear:async()=>{state=null;}};
+test('cronômetro central é único, modo noturno restaura brilho e a notificação reabre a sessão',async()=>{
+ let state,openSession;
+ const brightness=[];
+ const plugin={
+  publish:async({session})=>{state=session;},
+  read:async()=>({session:state}),clear:async()=>{state=null;},
+  setNightBrightness:async({enabled})=>brightness.push(enabled),
+  addListener:async(event,handler)=>{if(event==='openSession')openSession=handler;},
+  takeOpenSession:async()=>({})
+ };
  const h=harness({native:true,readingTimer:plugin});
  h.evaluate("S.books=[{id:'b',title:'Meu livro',page:10,total:100}];startReadingTimer('b');");
  await settle();
+ const sheet=h.elements.get('sheet-root');
  assert.equal(state.running,true);
+ assert.match(sheet.innerHTML,/sheet-center reading-focus/);
+ assert.equal((sheet.innerHTML.match(/role="timer"/g)||[]).length,1);
+ assert.doesNotMatch(h.evaluate('viewToday()'),/role="timer"|Descartar/);
+ h.elements.set('tm-focus-time',{});
  await h.click('tm-night');
- assert.match(h.elements.get('sheet-root').innerHTML,/reading-dim/);
+ await settle();
+ assert.deepEqual(brightness,[true]);
+ assert.equal(h.evaluate('readingDim'),true);
  assert.equal(h.evaluate('temaAtual().id'),'lilas');
+ await h.click('close');
+ h.elements.delete('tm-focus-time');
+ await settle();
+ assert.deepEqual(brightness,[true,false]);
+ assert.equal(h.evaluate('S.timer.running'),true);
+ assert.equal(sheet.innerHTML,'');
+ await openSession({id:'outro-perfil'});
+ assert.equal(sheet.innerHTML,'');
  state={...state,running:false,fin:true,acc:61000,changedAt:state.changedAt+1000};
- await h.evaluate('readNativeTimer()');
+ await openSession({id:state.id});
  assert.equal(h.evaluate('S.timer.fin'),true);
  assert.equal(h.evaluate('tmMs()'),61000);
+ assert.match(sheet.innerHTML,/sheet-center.*Registrar leitura/);
+ await h.click('close');
+ assert.equal(h.evaluate('S.timer.fin'),true);
+ assert.match(h.evaluate('viewToday()'),/Tempo pronto para registrar/);
+});
+
+test('confirmar o registro salva o tempo e a página juntos',()=>{
+ const h=harness();
+ h.evaluate("S.books=[{id:'b',title:'Meu livro',page:10,total:100}]; S.timer={id:'t',bookId:'b',fin:true};");
+ for(const [id,value] of Object.entries({'f-book':'b','f-hours':'0','f-min':'12','f-page':'24'}))h.elements.set(id,{value});
+ h.elements.set('f-err',{textContent:''});
+ h.evaluate('const workingSave=save;save=()=>false;submitLog()');
+ assert.equal(h.evaluate('S.timer.id'),'t');
+ assert.equal(h.evaluate('S.logs.length'),0);
+ assert.equal(h.evaluate('S.books[0].page'),10);
+ assert.match(h.elements.get('f-err').textContent,/continua disponível/);
+ h.evaluate('save=workingSave;submitLog()');
+ const persisted=JSON.parse(h.storage.get('lume-leitura-v1'));
+ assert.equal(persisted.timer,null);
+ assert.equal(persisted.logs[0].t,1);
+ assert.equal(persisted.logs[0].min,12);
+ assert.equal(persisted.books[0].page,24);
 });
 test('trechos são dos livros correspondentes e a legenda leva ao download oficial',()=>{
  const h=harness();

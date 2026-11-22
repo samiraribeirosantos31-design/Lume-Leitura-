@@ -15,6 +15,7 @@ import org.json.JSONObject;
 
 public class ReadingTimerReceiver extends BroadcastReceiver {
     static final int NOTIFICATION = 1927;
+    static final String OPEN_SESSION = "com.lume.leitura.OPEN_READING_SESSION";
     private static final String CHANNEL = "lume-reading-timer-v1";
     private static final String PREFS = "lume-reading-timer";
 
@@ -64,22 +65,28 @@ public class ReadingTimerReceiver extends BroadcastReceiver {
         long accumulated = session.optLong("acc");
         long seconds = accumulated / 1000;
         String elapsed = String.format(Locale.ROOT, "%02d:%02d", seconds / 60, seconds % 60);
-        Intent open = new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        Intent open = new Intent(context, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .putExtra(OPEN_SESSION, session.optString("id"));
         PendingIntent openApp = PendingIntent.getActivity(context, 70, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        String title = running ? "Leitura em andamento" : finished ? "Leitura encerrada" : "Leitura pausada";
-        String book = session.optString("title", "Lume Leitura");
+        String title = running ? "Leitura em andamento" : finished ? "Tempo pronto para registrar" : "Leitura pausada";
+        String book = session.optString("title", "Livro");
+        String details = running ? "Cronômetro ativo. Toque para abrir a sessão."
+                : finished ? elapsed + " · Toque para registrar a leitura." : elapsed + " · Continue quando quiser.";
         NotificationCompat.Builder notification = new NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_menu_recent_history)
-                .setContentTitle(title).setContentText(running ? book : elapsed + " · " + book)
+                .setColor(0xff69539b)
+                .setContentTitle(title).setContentText(running ? book : book + " · " + elapsed)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(book + "\n" + details))
                 .setContentIntent(openApp).setOnlyAlertOnce(true).setOngoing(!finished)
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPriority(NotificationCompat.PRIORITY_LOW)
                 .setShowWhen(running).setUsesChronometer(running);
         if (running) notification.setWhen(session.optLong("t0") - accumulated);
         if (!finished) {
             notification.addAction(0, running ? "Pausar" : "Continuar", action(context, running ? "pause" : "resume", session, 71))
-                    .addAction(0, "Parar", action(context, "stop", session, 72));
+                    .addAction(0, "Encerrar", action(context, "stop", session, 72));
         }
-        notification.addAction(0, "Abrir app", openApp);
+        notification.addAction(0, finished ? "Registrar" : "Abrir sessão", openApp);
         try { manager.notify(NOTIFICATION, notification.build()); }
         catch (SecurityException ignored) {}
     }

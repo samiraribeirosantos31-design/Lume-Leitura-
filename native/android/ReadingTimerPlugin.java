@@ -1,6 +1,9 @@
 package com.lume.leitura;
 
 import android.app.NotificationManager;
+import android.content.Intent;
+import android.view.Window;
+import android.view.WindowManager;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -10,6 +13,51 @@ import org.json.JSONObject;
 
 @CapacitorPlugin(name = "ReadingTimer")
 public class ReadingTimerPlugin extends Plugin {
+    private Float previousBrightness;
+
+    @PluginMethod
+    public void setNightBrightness(PluginCall call) {
+        boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", false));
+        getActivity().runOnUiThread(() -> {
+            Window window = getActivity().getWindow();
+            WindowManager.LayoutParams attributes = window.getAttributes();
+            if (enabled && previousBrightness == null) {
+                previousBrightness = attributes.screenBrightness;
+                attributes.screenBrightness = 0.01f;
+                window.setAttributes(attributes);
+            } else if (!enabled && previousBrightness != null) {
+                attributes.screenBrightness = previousBrightness;
+                previousBrightness = null;
+                window.setAttributes(attributes);
+            }
+            call.resolve();
+        });
+    }
+
+    private JSObject consumeOpenSession(Intent intent) {
+        JSObject result = new JSObject();
+        if (intent != null) {
+            String id = intent.getStringExtra(ReadingTimerReceiver.OPEN_SESSION);
+            if (id != null) {
+                intent.removeExtra(ReadingTimerReceiver.OPEN_SESSION);
+                result.put("id", id);
+            }
+        }
+        return result;
+    }
+
+    @PluginMethod
+    public void takeOpenSession(PluginCall call) {
+        getActivity().runOnUiThread(() -> call.resolve(consumeOpenSession(getActivity().getIntent())));
+    }
+
+    @Override
+    protected void handleOnNewIntent(Intent intent) {
+        super.handleOnNewIntent(intent);
+        JSObject result = consumeOpenSession(intent);
+        if (result.has("id")) notifyListeners("openSession", result, true);
+    }
+
     @PluginMethod
     public void publish(PluginCall call) {
         JSONObject session = call.getObject("session");

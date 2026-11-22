@@ -35,14 +35,14 @@ function openAdd(note){
    +'<p class="err" id="f-err" role="alert"></p>'
    +'<div class="row"><button class="btn btn-primary" type="submit">Salvar livro</button><button class="btn btn-ghost" type="button" data-act="close">Cancelar</button></div></form>','f-title');
 }
-function openLog(id){
-  const open=S.books.filter(b=>!b.done);
+function openLog(id,{timer=false}={}){
+  const open=S.books.filter(b=>!b.done&&(!timer||b.id===id));
   if(!open.length){openAdd(S.books.length?'Todos os seus livros estão concluídos. Adicione o próximo para continuar.':'Adicione um livro para registrar sua primeira leitura.');return;}
   let sel=id&&open.find(b=>b.id===id)?id:null;
   if(!sel){for(let i=S.logs.length-1;i>=0&&!sel;i--){if(open.find(b=>b.id===S.logs[i].bookId))sel=S.logs[i].bookId;}}
   if(!sel)sel=open[0].id;
   const book=open.find(b=>b.id===sel);
-  openSheet('<h2 id="sh-t">Registrar leitura</h2><form id="form-log" novalidate>'
+  openSheet('<h2 id="sh-t" tabindex="-1">Registrar leitura</h2><form id="form-log" novalidate>'
    +'<label for="f-book">Livro</label><select id="f-book">'+open.map(b=>'<option value="'+b.id+'"'+(b.id===sel?' selected':'')+'>'+esc(b.title)+'</option>').join('')+'</select>'
    +'<fieldset class="reading-duration"><legend>Tempo de leitura</legend><div class="chips">'+[10,15,20,30,45].map(v=>'<button type="button" class="chip" data-act="chip" data-v="'+v+'" aria-pressed="false">'+v+' min</button>').join('')+'</div>'
    +'<div class="duration-parts"><label>Horas<input id="f-hours" type="number" inputmode="numeric" min="0" max="10" step="1" placeholder="0"></label>'
@@ -51,7 +51,7 @@ function openLog(id){
    +'<p class="hint" id="f-hint">Você estava na página '+book.page+' de '+book.total+'.</p>'
    +'<p class="preview num" id="f-prev">Informe horas e minutos para ver seus pontos.</p>'
    +'<p class="err" id="f-err" role="alert"></p>'
-   +'<div class="row"><button class="btn btn-primary" type="submit">Salvar leitura</button><button class="btn btn-ghost" type="button" data-act="close">Cancelar</button></div></form>','f-min');
+   +'<div class="row"><button class="btn btn-primary" type="submit">Salvar leitura</button><button class="btn btn-ghost" type="button" data-act="close">Cancelar</button></div></form>',timer?'sh-t':'f-min',timer?'sheet-center':'');
 }
 function curBook(){const el=$('#f-book');return el?S.books.find(b=>b.id===el.value):null;}
 function formReadingMinutes(){
@@ -82,10 +82,18 @@ function submitLog(){
   if(pg<b.page)return fail('Você já estava na página '+b.page+'. Informe essa página ou uma maior.');
   if(pg>b.total)return fail('Este livro tem '+b.total+' páginas. Informe uma página até '+b.total+'.');
   const before=readingJourney(),c=calc(b,min,pg);
-  S.logs.push({id:uid(),date:today(),bookId:b.id,min:min,pages:c.pages,pts:c.pts,work:bookIdentity(b),finished:c.fin});
+  const previous={page:b.page,done:b.done,seen:S.seen,timer:S.timer};
+  const timed=S.timer?.fin&&S.timer.bookId===b.id;
+  S.logs.push({id:uid(),date:today(),bookId:b.id,min:min,pages:c.pages,pts:c.pts,work:bookIdentity(b),finished:c.fin,...(timed?{t:1}:{})});
+  if(timed)S.timer=null;
   b.page=pg;if(c.fin)b.done=true;
   const after=readingJourney(),now=unlockedIds(),seen=S.seen||[],fresh=achs().filter(a=>a.ok&&seen.indexOf(a.id)<0);
-  if(!S.demo)S.seen=now;save();closeSheet();render();
+  if(!S.demo)S.seen=now;
+  if(!save()){
+    S.logs.pop();b.page=previous.page;b.done=previous.done;S.seen=previous.seen;S.timer=previous.timer;
+    return fail('Não foi possível salvar. Sua sessão continua disponível.');
+  }
+  closeSheet();render();
   const lines=['+'+c.pts+' pontos'];
   if(c.goal)lines.push('Meta de hoje batida');
   if(c.fin)lines.push('Livro concluído: '+b.title);
