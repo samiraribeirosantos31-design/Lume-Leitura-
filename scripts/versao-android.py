@@ -15,6 +15,13 @@ text, dependencies = re.subn(
 )
 if dependencies != 1:
     raise RuntimeError('Não foi possível configurar a tradução.')
+text, packaging = re.subn(
+    r'(?m)^android\s*\{',
+    'android {\n    packagingOptions {\n        jniLibs {\n            useLegacyPackaging = true\n        }\n    }',
+    text, count=1,
+)
+if packaging != 1:
+    raise RuntimeError('Não foi possível compactar as bibliotecas da tradução.')
 p.write_text(text)
 
 variables = Path('android/variables.gradle')

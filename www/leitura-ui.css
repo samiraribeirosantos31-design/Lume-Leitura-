@@ -78,5 +78,6 @@ button,summary{touch-action:manipulation}
 .synopsis-status,.synopsis-credit{color:var(--ink-2);font-size:.78rem;margin:0 0 8px}
 .synopsis-status:empty{display:none}
 .synopsis-credit{display:block}
-.synopsis-credit img{max-width:140px;height:auto}
+.synopsis-credit-mark{display:inline-block;width:188px;max-width:100%;height:25px;overflow:hidden;vertical-align:middle}
+.synopsis-credit-mark img{display:block;width:640px;height:91px;max-width:none;transform:translate(-14px,-16px)}
 .synopsis-credit summary{margin:4px 0;cursor:pointer}

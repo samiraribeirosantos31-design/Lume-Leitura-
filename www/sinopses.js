@@ -19,9 +19,9 @@ function bookSynopsis(text,language,{limit=460,empty='Sem sinopse disponível.'}
   return '<div class="book-synopsis" data-synopsis="'+esc(text)+'" data-limit="'+limit+'" data-language="'+esc(language||'')+'">'
     +'<p class="det-d" data-synopsis-text>'+esc(text?shortDescription(text,limit):empty)+'</p>'
     +'<div class="synopsis-actions"><button class="synopsis-link" type="button" data-act="synopsis-more"'+(text.length>limit?'':' hidden')+' aria-expanded="false">Ver mais</button>'
-    +'<button class="synopsis-link" type="button" data-act="synopsis-translate"'+(canTranslate&&text?'':' hidden')+ '>'+synopsisActionLabel()+'</button></div>'
+    +'<button class="synopsis-link" type="button" data-act="synopsis-translate"'+(canTranslate&&text?'':' hidden')+'>'+synopsisActionLabel()+'</button></div>'
     +'<p class="synopsis-status" role="status" data-synopsis-status></p>'
-    +'<div class="synopsis-credit" data-synopsis-credit hidden><a href="https://translate.google.com/" target="_blank" rel="noopener"><img src="icones/google-translate-credit.png" alt="Tradução pelo Google Tradutor" loading="lazy"></a>'
+    +'<div class="synopsis-credit" data-synopsis-credit hidden><a class="synopsis-credit-mark" href="https://translate.google.com/" target="_blank" rel="noopener"><img src="icones/google-translate-credit.png" alt="Tradução pelo Google Tradutor" loading="lazy"></a>'
     +'<details><summary>Sobre a tradução</summary><p>Este serviço pode conter traduções do Google. O Google não oferece garantias sobre exatidão, confiabilidade, adequação, comercialização ou respeito a direitos de terceiros.</p></details></div></div>';
 }
 async function identifySynopsis(root){
