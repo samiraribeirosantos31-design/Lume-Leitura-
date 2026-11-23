@@ -8,23 +8,11 @@ function eyebrow(){
   if(tab==='books'){const n=S.books.length,d=S.books.filter(b=>b.done).length;return n+' '+pl(n,'livro','livros')+' · '+d+' '+pl(d,'concluído','concluídos');}
   const a=achs();return a.filter(x=>x.ok).length+' de '+a.length+' conquistas';
 }
-function demoBanner(){
-  if(!S.demo)return '';
-  if(ask==='clear')return '<div class="demo"><p>Apagar os livros e leituras de exemplo e começar do zero?</p><div class="row"><button class="btn btn-danger" data-act="wipe-yes">Apagar exemplos</button><button class="btn btn-ghost" data-act="ask-no">Cancelar</button></div></div>';
-  return '<div class="demo"><p>Você está vendo dados de exemplo. Registre leituras para testar e apague tudo quando quiser.</p><button class="btn btn-ghost" data-act="ask-clear">Começar do zero</button></div>';
-}
 function viewToday(){
-  const mins=minutesOn(today()),pts=points(),st=stageOf(pts),sk=streak(),met=mins>=S.goal;
-  const mood=met?'happy':(mins===0?'sleepy':'normal');
-  let msg;
-  if(st===0&&pts===0)msg='Adicione um livro e registre uma leitura para chocar o ovo.';
-  else if(st===0)msg='O ovo está rachando. Continue lendo.';
-  else if(met)msg=esc(S.petName)+' está radiante com a meta de hoje.';
-  else if(mins>0)msg='Faltam '+(S.goal-mins)+' min para a meta de hoje.';
-  else if(sk>0)msg='Leia hoje para manter a sequência de '+sk+' '+pl(sk,'dia','dias')+'.';
-  else msg='Seu mascote está dormindo. Leia alguns minutos para acordá-lo.';
-  const frac=st<4?(pts-CUTS[st])/(CUTS[st+1]-CUTS[st]):1;
-  const xpl=st<4?nf(pts)+' / '+nf(CUTS[st+1])+' pts · próximo: '+STAGES[st+1]:nf(pts)+' pts · estágio máximo';
+  const mins=minutesOn(today()),pts=points(),sk=streak(),met=mins>=S.goal;
+  const journey=readingJourney(),petStage=journeyStage(journey),mood=journeyMood(journey,mins);
+  const suggestion=journeySuggestion(journey,mins,mood);
+  const progress=journeyProgress(journey);
   const C=2*Math.PI*50,dash=C*Math.min(1,mins/S.goal);
   const w=week(),scale=Math.max(S.goal,...w.map(x=>x.min),1);
   const cols=w.map(x=>{
@@ -32,10 +20,15 @@ function viewToday(){
     return '<div class="col"><span class="v num">'+(x.min||'')+'</span><div class="b'+(x.min>=S.goal?' ok':'')+'" style="height:'+h+'px"></div></div>';
   }).join('');
   const days=w.map(x=>'<span class="'+(x.today?'t':'')+'">'+(x.today?'hoje':x.d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.',''))+'</span>').join('');
-  return demoBanner()
-   +'<section class="pet-card"><div class="pet">'+pet(st,mood)+'</div><div><p class="eyebrow">Estágio '+(st+1)+' de 5</p>'
-   +'<h2>'+esc(S.petName)+' <span class="stage">'+STAGES[st]+'</span></h2><p class="mood">'+msg+'</p>'
-   +'<div class="xp" role="img" aria-label="'+esc(xpl)+'"><i style="width:'+Math.round(frac*100)+'%"></i></div><p class="xp-l num">'+xpl+'</p></div></section>'
+  return ''
+   +'<section class="pet-card journey-card"><div class="pet-actor"><button class="pet pet-touch" type="button" data-act="pet-touch" aria-label="Personalizar mascote">'+pet(petStage,mood)+'</button>'
+   +'<div id="pet-voice" class="pet-voice">'+(typeof mascotVoiceHtml==='function'?mascotVoiceHtml(suggestion,mood):'')+'</div></div>'
+   +'<div class="journey-summary"><p class="eyebrow">Nível '+journey.level+' de '+journey.ceiling+'</p>'
+   +'<h2>'+esc(S.petName)+'</h2><p class="stage">'+(petStage===0?'Ovo · ':'')+journeyRank(journey.level)+'</p>'
+   +'<div class="xp" role="progressbar" aria-label="Progresso do mascote" aria-valuenow="'+progress.percent+'"><i style="width:'+progress.percent+'%"></i></div><p class="xp-l num">'+progress.label+'</p>'
+   +'<p class="journey-next">'+nextJourneyReward(journey)+'</p>'+(journey.level===10?'<p class="journey-next">Cronometre suas sessões para seguir evoluindo.</p>':'')+'</div>'
+   +(journey.started?'':'<p class="journey-next journey-intro">Registre uma leitura para chocar o ovo.</p>')
+   +(journey.level>=30?'<button class="btn btn-soft journey-link" type="button" data-act="pet-secret">Ver trilha secreta</button>':'')+'</section>'
    +'<section class="card goal"><div class="ring-w"><svg viewBox="0 0 120 120" role="img" aria-label="'+mins+' de '+S.goal+' minutos hoje">'
    +'<circle cx="60" cy="60" r="50" fill="none" stroke="var(--surface-2)" stroke-width="12"/>'
    +'<circle cx="60" cy="60" r="50" fill="none" stroke="'+(met?'var(--accent)':'var(--pet)')+'" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+dash.toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 60 60)"/></svg>'

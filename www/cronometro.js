@@ -1,5 +1,6 @@
-let tmBook=null, tmAsk=false;
-const tmMs=()=>{const t=S.timer;return t?t.acc+(t.running?Date.now()-t.t0:0):0;};
+let tmBook=null;
+let readingDim=false;
+const tmMs=(t=S.timer)=>t?Math.max(0,Number(t.acc)||0)+(t.running?Math.max(0,Date.now()-(Number(t.t0)||Date.now())):0):0;
 const fmtT=ms=>{
   const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;
   return h?h+':'+pad(m)+':'+pad(r):pad(m)+':'+pad(r);
@@ -13,18 +14,17 @@ function tmCard(){
     if(!tmBook||!open.find(b=>b.id===tmBook))tmBook=open[0].id;
     return '<section class="card tm"><h2>Cronômetro de leitura</h2>'
       +'<p class="muted">Cronometre quanto você lê de verdade. Ao finalizar, o tempo vai direto para o registro.</p>'
-      +'<select id="tm-book" class="tm-sel" aria-label="Livro">'+open.map(b=>'<option value="'+b.id+'"'+(b.id===tmBook?' selected':'')+'>'+esc(b.title)+'</option>').join('')+'</select>'
+      +choiceField('tm-book','Livro para cronometrar',bookChoices(open),tmBook,{search:open.length>5})
       +'<button class="btn btn-soft btn-block" data-act="tm-start">'+ic('i-today')+' Iniciar leitura</button></section>';
   }
   const bk=S.books.find(b=>b.id===t.bookId);
-  const disc=tmAsk
-    ?'<div class="confirm"><p>Descartar este tempo sem registrar?</p><div class="row"><button class="btn btn-danger" data-act="tm-discard-yes">Descartar</button><button class="btn btn-ghost" data-act="tm-no">Voltar</button></div></div>'
-    :'<button class="btn btn-quiet" data-act="tm-discard">Descartar</button>';
-  return '<section class="card tm on"><p class="eyebrow">'+(t.running?'Lendo agora':'Pausado')+'</p>'
-    +'<div class="tm-disp num" id="tm-disp" role="timer">'+fmtT(tmMs())+'</div>'
-    +'<p class="muted">'+esc(bk?bk.title:'Livro removido')+'</p>'
-    +'<div class="row"><button class="btn btn-primary" data-act="'+(t.running?'tm-pause':'tm-resume')+'">'+(t.running?'Pausar':'Retomar')+'</button>'
-    +'<button class="btn btn-soft" data-act="tm-finish">Finalizar e registrar</button></div>'+disc+'</section>';
+  const status=t.fin?'Tempo pronto para registrar':t.running?'Leitura em andamento':'Leitura pausada';
+  const action=t.fin?'tm-open':t.running?'tm-open':'tm-resume';
+  const label=t.fin?'Registrar leitura':t.running?'Abrir cronômetro':'Retomar leitura';
+  return '<section class="card tm on"><div class="timer-home-label"><h2>Cronômetro de leitura</h2>'
+    +'<p class="muted">'+status+' · '+esc(bk?bk.title:'Livro removido')+'</p></div>'
+    +'<div class="timer-home-count num" id="tm-home-time" role="timer" aria-label="Tempo da sessão">'+fmtT(tmMs(t))+'</div>'
+    +'<button class="btn btn-soft btn-block" data-act="'+action+'">'+label+'</button></section>';
 }
 
 function rhythmCard(){
@@ -61,44 +61,215 @@ function rhythmCard(){
 
 const _viewToday=viewToday;
 viewToday=function(){
-  const h=_viewToday(),key='<section class="card"><div class="chart-h">',i=h.indexOf(key),extra=tmCard()+rhythmCard();
-  return i>=0?h.slice(0,i)+extra+h.slice(i):h+extra;
+  const h=_viewToday(),key='<section class="card"><div class="chart-h">',i=h.indexOf(key);
+  const extra=(S.timer?'':tmCard())+rhythmCard();
+  const body=i>=0?h.slice(0,i)+extra+h.slice(i):h+extra;
+  return S.timer?body.replace('</section>','</section>'+tmCard()):body;
 };
+const readingPlugin=()=>window.Capacitor?.Plugins?.ReadingTimer;
+let visibleTimer, timerNativeOps=Promise.resolve();
+function timerBridge(action,params){
+  const plugin=readingPlugin();if(typeof plugin?.[action]!=='function')return Promise.resolve(null);
+  const operation=timerNativeOps.then(()=>plugin[action](params||{}));
+  timerNativeOps=operation.catch(()=>null);
+  return timerNativeOps;
+}
+function publishTimer(){
+  const t=S.timer;if(!t?.id)return;
+  const title=S.books.find(b=>b.id===t.bookId)?.title||'Lume Leitura';
+  timerBridge('publish',{session:{...t,title,notify:S.timerAlerts!==false}});
+}
+function stampTimer(t){t.changedAt=Math.max(Date.now(),(t.changedAt||0)+1);}
+function trackTimer(){
+  const t=S.timer;
+  if(t&&!t.id){t.id=uid();stampTimer(t);save();}
+  const previous=visibleTimer;
+  if(previous===(t?.id||null))return;
+  visibleTimer=t?.id||null;
+  if(previous)timerBridge('clear',{id:previous});
+  else if(!t)timerBridge('hide');
+  if(t)readNativeTimer(true);
+}
+async function readNativeTimer(publishMissing=false){
+  const before=S.timer,profile=stateKey;
+  if(!readingPlugin()||!before?.id)return;
+  const result=await timerBridge('read');
+  if(stateKey!==profile||S.timer!==before)return;
+  const incoming=result?.session;
+  if(incoming?.id===before.id&&incoming.changedAt>before.changedAt){
+    const {t0,acc,running,fin,changedAt}=incoming;
+    if(!Number.isFinite(acc)||!Number.isFinite(t0))return;
+    Object.assign(before,{t0,acc,running,fin,changedAt});
+    save();render();
+    if(timerPanelOpen)openTimerPanel();
+  }else if(publishMissing)publishTimer();
+}
+let nativeNight=false;
+function syncReadingNight(){
+  document.body.classList.toggle('reading-night',readingDim);
+  const shouldDim=readingDim&&!document.hidden;
+  if(shouldDim===nativeNight)return;
+  nativeNight=shouldDim;
+  timerBridge('setNightBrightness',{enabled:shouldDim});
+}
+function setReadingNight(enabled){
+  readingDim=enabled;
+  syncReadingNight();
+}
+let clockTick=0,timerPanelOpen=false;
+function renderTimerClock(){
+  clearTimeout(clockTick);
+  const t=S.timer;if(!t)return;
+  const focus=$('#tm-focus-time'),home=$('#tm-home-time'),ms=tmMs(t),display=fmtT(ms);
+  if(focus&&focus.textContent!==display)focus.textContent=display;
+  if(home&&home.textContent!==display)home.textContent=display;
+  if(t.running&&!document.hidden&&(focus||home))clockTick=setTimeout(renderTimerClock,Math.max(24,1000-ms%1000));
+}
+function pauseTimerSession(t=S.timer){
+  if(!t?.running||t.fin)return false;
+  t.acc=tmMs(t);t.running=false;stampTimer(t);save();publishTimer();
+  return true;
+}
+function resumeTimerSession(){
+  const t=S.timer;
+  if(!t||t.fin)return;
+  if(!t.running){
+    t.t0=Date.now();t.running=true;stampTimer(t);save();publishTimer();render();
+  }
+  if(typeof stopMascotVoice==='function')stopMascotVoice();
+  openTimerPanel();
+}
+function leaveTimerPanel(){
+  const wasOpen=timerPanelOpen;
+  timerPanelOpen=false;
+  document.body.classList.remove('timer-focus-open');
+  setReadingNight(false);
+  const paused=pauseTimerSession();
+  if(wasOpen&&tab==='today'&&typeof beginMascotVoice==='function')beginMascotVoice();
+  if(paused||wasOpen)render();
+  else renderTimerClock();
+}
+const showBeforeReading=openSheet,closeBeforeReading=closeSheet;
+openSheet=function(html,focusId,variant=''){
+  if(variant!=='sheet-center reading-focus')leaveTimerPanel();
+  showBeforeReading(html,focusId,variant);
+};
+closeSheet=function(){
+  closeBeforeReading();
+  leaveTimerPanel();
+};
+window.lumeHandleBack=()=>{
+  if(dismissChoice())return true;
+  if(!timerPanelOpen&&!$('.sheet'))return false;
+  closeSheet();return true;
+};
+
+function openTimerPanel(){
+  const t=S.timer,b=S.books.find(x=>x.id===t?.bookId);
+  if(!t||!b)return;
+  if(t.fin){openTimerLog();return;}
+  timerPanelOpen=true;document.body.classList.add('timer-focus-open');
+  openSheet('<p class="eyebrow">'+(t.running?'Leitura em andamento':'Leitura pausada')+'</p>'
+    +'<h2 id="sh-t" tabindex="-1">'+esc(b.title)+'</h2>'
+    +'<div class="tm-disp num" id="tm-focus-time" role="timer" aria-label="Tempo de leitura">'+fmtT(tmMs())+'</div>'
+    +'<div class="reading-actions"><button type="button" class="btn btn-soft" data-act="'+(t.running?'tm-pause':'tm-resume')+'">'+(t.running?'Pausar':'Retomar leitura')+'</button>'
+    +'<button type="button" class="btn btn-primary" data-act="tm-finish">Encerrar e registrar</button></div>'
+    +'<div class="reading-options"><button type="button" id="tm-night" class="btn btn-ghost" aria-pressed="'+readingDim+'" data-act="tm-night">Modo noturno</button>'
+    +'<button type="button" class="btn btn-ghost" data-act="close">Voltar ao app</button></div>','sh-t','sheet-center reading-focus');
+  renderTimerClock();
+}
+function openTimerLog(){
+  const t=S.timer;
+  if(!t||!S.books.some(b=>b.id===t.bookId&&!b.done))return;
+  openLog(t.bookId,{timer:true});
+  preview();
+  const hint=$('#f-hint');if(hint)hint.textContent+=' Tempo cronometrado: '+fmtT(tmMs())+'.';
+}
+function startReadingTimer(bookId){
+  const book=S.books.find(b=>b.id===bookId&&!b.done);if(!book)return;
+  if(S.timer){openTimerPanel();return;}
+  tmBook=bookId;setReadingNight(false);
+  S.timer={id:uid(),bookId,t0:Date.now(),acc:0,running:true,fin:false};
+  stampTimer(S.timer);save();render();openingReadingQuote(bookId);
+  if(typeof stopMascotVoice==='function')stopMascotVoice();
+  openTimerPanel();
+}
 const _submitLog=submitLog;
 submitLog=function(){
   const n=S.logs.length;
   _submitLog();
-  if(S.logs.length>n&&S.timer&&S.timer.fin){
-    S.logs[S.logs.length-1].t=1;
-    S.timer=null;tmAsk=false;save();render();
-  }
+  if(S.logs.length>n)openingReadingQuote(S.logs.at(-1).bookId);
 };
-
-document.addEventListener('click',function(e){
+document.addEventListener('click',async function(e){
   const a=e.target.closest('[data-act]');if(!a)return;
-  const act=a.dataset.act,t=S.timer;
+  const act=a.dataset.act;
+  if(act==='goal-apply'){S.goal=parseInt(a.dataset.v,10);save();render();toast(['Meta diária: '+S.goal+' min']);return;}
+  if(!act.startsWith('tm-'))return;
+  if(act==='tm-start'||act==='tm-quick'){startReadingTimer(act==='tm-quick'?a.dataset.id:$('#tm-book')?.value);return;}
+  if(act==='tm-alerts'){
+    if(a.disabled)return;
+    a.disabled=true;
+    const permissions=window.Capacitor?.Plugins?.LocalNotifications;
+    let granted=false;
+    try{
+      const status=await permissions?.checkPermissions();
+      granted=status?.display==='granted';
+      if(!granted)granted=(await permissions?.requestPermissions())?.display==='granted';
+      else S.timerAlerts=S.timerAlerts===false;
+      if(!granted)return toast(['Ative as notificações do Lume nas configurações do Android.']);
+      if(status?.display!=='granted')S.timerAlerts=true;
+      save();publishTimer();if(a.isConnected)openSettings('reading');
+    }catch(e){toast(['Não foi possível alterar as notificações.']);}
+    finally{a.disabled=false;}
+    return;
+  }
+  if(act==='tm-night'){
+    if(S.timer&&!S.timer.fin&&$('#tm-focus-time')){
+      setReadingNight(!readingDim);
+      a.setAttribute('aria-pressed',String(readingDim));
+    }
+    return;
+  }
+  const before=S.timer;
+  if(!before||!['tm-open','tm-pause','tm-resume','tm-finish'].includes(act))return;
+  await readNativeTimer();
+  const t=S.timer;if(t!==before)return;
   switch(act){
-    case 'tm-start':{
-      const sel=$('#tm-book');if(!sel||!sel.value)break;
-      tmBook=sel.value;S.timer={bookId:sel.value,t0:Date.now(),acc:0,running:true,fin:false};save();render();break;
-    }
-    case 'tm-pause':if(t&&t.running){t.acc+=Date.now()-t.t0;t.running=false;save();render();}break;
-    case 'tm-resume':if(t&&!t.running){t.t0=Date.now();t.running=true;t.fin=false;save();render();}break;
-    case 'tm-finish':{
-      if(!t)break;
-      const ms=tmMs();t.acc=ms;t.running=false;t.fin=true;save();render();
-      openLog(t.bookId);
-      const fm=$('#f-min');
-      if(fm){fm.value=Math.min(600,Math.max(1,Math.round(ms/60000)));preview();}
-      const h=$('#f-hint');if(h)h.textContent+=' Tempo cronometrado: '+fmtT(ms)+'.';
+    case 'tm-open':openTimerPanel();break;
+    case 'tm-pause':
+      if(pauseTimerSession(t)){render();openTimerPanel();}
       break;
-    }
-    case 'tm-discard':tmAsk=true;render();break;
-    case 'tm-no':tmAsk=false;render();break;
-    case 'tm-discard-yes':S.timer=null;tmAsk=false;save();render();toast(['Cronômetro descartado']);break;
-    case 'goal-apply':S.goal=parseInt(a.dataset.v,10);save();render();toast(['Meta diária: '+S.goal+' min']);break;
+    case 'tm-resume':
+      resumeTimerSession();
+      break;
+    case 'tm-finish':
+      if(!t.fin){t.acc=tmMs();t.running=false;t.fin=true;stampTimer(t);save();render();publishTimer();}
+      openTimerLog();break;
   }
 });
 document.addEventListener('change',function(e){if(e.target.id==='tm-book')tmBook=e.target.value;});
-setInterval(function(){const el=$('#tm-disp');if(el&&S.timer)el.textContent=fmtT(tmMs());},500);
-render();
+async function showNotificationTimer(result){
+  const timer=S.timer,profile=stateKey;
+  if(!timer||timer.id!==result?.id)return false;
+  await readNativeTimer();
+  if(S.timer!==timer||profile!==stateKey)return false;
+  if(result.resume&&!timer.fin)resumeTimerSession();
+  else openTimerPanel();
+  return true;
+}
+function mountReadingTimer(){
+  const nativeReading=readingPlugin();
+  renderTimerClock();
+  if(typeof nativeReading?.addListener==='function'){
+    try{Promise.resolve(nativeReading.addListener('openSession',showNotificationTimer)).catch(()=>{});}catch(e){}
+  }
+  timerBridge('takeOpenSession').then(async result=>{
+    const opened=await showNotificationTimer(result);
+    if(!opened&&!timerPanelOpen&&pauseTimerSession())render();
+  }).catch(()=>{});
+}
+document.addEventListener('visibilitychange',()=>{
+  syncReadingNight();
+  if(!document.hidden){renderTimerClock();readNativeTimer();}
+});
+window.addEventListener('focus',()=>{renderTimerClock();readNativeTimer();});

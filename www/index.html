@@ -1,15 +1,25 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="booting">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lume Leitura</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap">
+<meta name="theme-color" content="#8E6FE0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lume">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icone.svg">
+<link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+<style>.booting body{visibility:hidden;background:#f4effb}</style>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="style2.css">
 <link rel="stylesheet" href="extra.css">
+<link rel="stylesheet" href="extra2.css">
+<link rel="stylesheet" href="evolucao.css">
+<link rel="stylesheet" href="leitura-ui.css">
+<link rel="stylesheet" href="atualizacao.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -18,11 +28,13 @@
   <symbol id="i-today" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
   <symbol id="i-books" viewBox="0 0 24 24"><rect x="4" y="4" width="4.5" height="16" rx="1"/><rect x="10" y="4" width="4.5" height="16" rx="1"/><path d="M16 6.5l3.4-.9 3 12.9-3.4.9Z"/></symbol>
   <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z"/><path d="M8 6H5v1.5A3 3 0 0 0 8 10.5"/><path d="M16 6h3v1.5a3 3 0 0 1-3 3"/><path d="M12 13v4"/><path d="M8.5 20h7"/></symbol>
-  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="m9.6 3-.8 2.5-2 .9-2.4-.8-1.6 2.8 1.8 1.8v2.6l-1.8 1.8 1.6 2.8 2.4-.8 2 .9.8 2.5h3.3l.8-2.5 2-.9 2.4.8 1.6-2.8-1.8-1.8v-2.6l1.8-1.8-1.6-2.8-2.4.8-2-.9-.8-2.5Z"/><circle cx="11.25" cy="11.5" r="3"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3.5h8.5L18.5 7.5v13H6Z"/><path d="M14 3.5v4.5h4.5M9 12h6M9 15.5h6"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10.5 5 8 4.5 4.5 4.5V18c3.5 0 6 .5 7.5 2 1.5-1.5 4-2 7.5-2V4.5C16 4.5 13.5 5 12 6.5ZM12 6.5V20"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4Z"/></symbol>
 </svg>
 
 <div class="wrap">
@@ -31,7 +43,7 @@
       <p class="eyebrow" id="eyebrow"></p>
       <h1 id="title">Hoje</h1>
     </div>
-    <button class="icon-btn" data-act="settings" aria-label="Ajustes"><svg class="i" aria-hidden="true"><use href="#i-sliders"/></svg></button>
+    <button class="icon-btn" data-act="settings" aria-label="Ajustes"><svg class="i" aria-hidden="true"><use href="#i-gear"/></svg></button>
   </header>
   <main id="view" role="tabpanel"></main>
 </div>
@@ -40,18 +52,50 @@
   <div class="tabs-in" role="tablist">
     <button class="tab" role="tab" data-tab="today"><svg class="i" aria-hidden="true"><use href="#i-today"/></svg>Hoje</button>
     <button class="tab" role="tab" data-tab="books"><svg class="i" aria-hidden="true"><use href="#i-books"/></svg>Livros</button>
+    <button class="tab" role="tab" data-tab="search"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Buscar</button>
     <button class="tab" role="tab" data-tab="notes"><svg class="i" aria-hidden="true"><use href="#i-note"/></svg>Notas</button>
     <button class="tab" role="tab" data-tab="ach"><svg class="i" aria-hidden="true"><use href="#i-trophy"/></svg>Conquistas</button>
   </div>
 </nav>
 
 <div id="sheet-root"></div>
+<dialog id="guia" aria-labelledby="guia-titulo"></dialog>
+<div id="reward-pop"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="build-info.js"></script>
+<script src="nuvem-config.js"></script>
 <script src="app1.js"></script>
+<script src="escolhas.js"></script>
+<script src="evolucao.js"></script>
+<script src="recompensas.js"></script>
 <script src="app2.js"></script>
 <script src="app3.js"></script>
 <script src="notas.js"></script>
 <script src="cronometro.js"></script>
+<script src="mascotes1.js"></script>
+<script src="mascotes2.js"></script>
+<script src="mascotes3.js"></script>
+<script src="mascotes4.js"></script>
+<script src="mascote-roupas.js"></script>
+<script src="fantasticos.js"></script>
+<script src="aquaticos.js"></script>
+<script src="temas.js"></script>
+<script src="mascote-painel.js"></script>
+<script src="busca.js"></script>
+<script src="sinopses.js"></script>
+<script src="estantes.js"></script>
+<script src="backup.js"></script>
+<script src="conta.js"></script>
+<script src="ritmo.js"></script>
+<script src="lembrete.js"></script>
+<script src="atualizacao.js"></script>
+<script src="interacoes.js"></script>
+<script src="guia.js"></script>
+<script src="ajustes.js"></script>
+<script>
+startApp();
+if('serviceWorker' in navigator&&!window.Capacitor&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){});}
+</script>
 </body>
 </html>
