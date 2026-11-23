@@ -12,10 +12,10 @@ button,summary{touch-action:manipulation}
 .journey-card .pet-actor .pet{width:100%;max-width:124px;min-width:0}
 .pet-actor .bob{animation:none}
 .pet-voice{position:absolute;inset-inline-start:calc(100% - 14px);width:clamp(126px,43vw,205px);top:61%;transform:translateY(-50%);pointer-events:none;z-index:2}
+.pet-voice{--voice-edge:color-mix(in srgb,var(--pet-deep) 68%,var(--line))}
 .pet-voice:empty,.timer-focus-open .pet-voice{display:none}
-.pet-voice .pet-bubble{position:relative;display:block;width:fit-content;max-width:100%;margin:0;padding:9px 25px 9px 11px;border-radius:13px;border:1px solid var(--line);background:var(--pet-wash);color:var(--ink);font-size:.80rem;line-height:1.35;overflow-wrap:anywhere;text-align:start;box-shadow:0 3px 12px var(--shadow);pointer-events:auto}
-.pet-voice .pet-bubble::before{content:"";position:absolute;top:50%;left:0;bottom:auto;width:10px;height:10px;border:0;border-left:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--pet-wash);transform:translate(-54%,-50%) rotate(45deg)}
-.pet-voice .pet-advice[data-mood=happy]{border-inline-start:1px solid var(--line)}
+.pet-voice .pet-bubble{position:relative;display:block;width:fit-content;max-width:100%;margin:0;padding:9px 25px 9px 11px;border-radius:13px;border:1.5px solid var(--voice-edge);background:var(--surface);color:var(--ink);font-size:.86rem;font-weight:550;line-height:1.4;overflow-wrap:anywhere;text-align:start;box-shadow:0 4px 13px var(--shadow);pointer-events:auto}
+.pet-voice .pet-bubble::before{content:"";position:absolute;top:50%;left:0;bottom:auto;width:10px;height:10px;border:0;border-left:1.5px solid var(--voice-edge);border-bottom:1.5px solid var(--voice-edge);background:var(--surface);transform:translate(-58%,-50%) rotate(45deg)}
 .voice-dismiss{display:grid;place-items:start end;position:absolute;inset:0 0 auto auto;width:32px;min-height:32px;padding:2px 6px 0 0;font-size:15px;line-height:1.1;border:0;background:transparent;color:var(--ink-3)}
 .voice-more{border:0;background:transparent;color:var(--pet-text);min-height:32px;padding:2px 0;text-decoration:underline;text-underline-offset:2px;font-size:.76rem;font-weight:700}
 .journey-summary{min-width:0}
@@ -68,3 +68,15 @@ button,summary{touch-action:manipulation}
 .choice-options [data-choice-empty]{padding:10px;color:var(--ink-2)}
 .choice-locked{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;overflow-wrap:anywhere}
 .tm .lume-choice{margin:8px 0}
+
+
+.book-synopsis .det-d{margin:0;overflow-wrap:anywhere}
+.sr .book-synopsis .det-d{font-size:.85rem;color:var(--ink-2)}
+.synopsis-actions{display:flex;flex-wrap:wrap;column-gap:14px}
+.synopsis-link{background:transparent;color:var(--pet-text);padding:0;min-height:40px;border:0;font-size:.81rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.synopsis-link:disabled{opacity:.65}
+.synopsis-status,.synopsis-credit{color:var(--ink-2);font-size:.78rem;margin:0 0 8px}
+.synopsis-status:empty{display:none}
+.synopsis-credit{display:block}
+.synopsis-credit img{max-width:140px;height:auto}
+.synopsis-credit summary{margin:4px 0;cursor:pointer}

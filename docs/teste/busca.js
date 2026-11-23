@@ -12,7 +12,7 @@ function norm(it){
   const v=it.volumeInfo||{},im=v.imageLinks||{};
   return {gid:it.id,title:v.title||'Sem título',author:(v.authors||[]).join(', '),pages:Number.isSafeInteger(v.pageCount)&&v.pageCount>0?v.pageCount:0,
     cover:httpsOnly(im.thumbnail||im.smallThumbnail),desc:strip(v.description),year:String(v.publishedDate||'').slice(0,4),
-    cats:(v.categories||[]).join(', '),rating:Number.isFinite(v.averageRating)?v.averageRating:0};
+    language:v.language||'',cats:(v.categories||[]).join(', '),rating:Number.isFinite(v.averageRating)?v.averageRating:0};
 }
 const inShelf=gid=>S.books.find(b=>b.gid===gid);
 async function fetchCatalog(url,signal){
@@ -113,7 +113,7 @@ function searchResults(){
     return '<article class="sr">'+coverImg(b.cover,'cv')+'<div class="sr-b"><h3>'+esc(b.title)+'</h3>'
      +(b.author?'<p class="muted">'+esc(b.author)+'</p>':'')
      +'<p class="muted num">'+[b.pages?b.pages+' páginas':'',b.year].filter(Boolean).join(' · ')+'</p>'
-     +(b.desc?'<p class="muted">'+esc(shortDescription(b.desc))+'</p>':'')
+     +(b.desc?bookSynopsis(b.desc,b.language,{limit:155}):'')
      +'<div class="row">'+(on?'<span class="pill">Na estante</span>'
        :'<button class="btn btn-soft" data-act="sq-add" data-i="'+i+'" data-s="want">Quero ler</button><button class="btn btn-ghost" data-act="sq-add" data-i="'+i+'" data-s="read">Lendo</button>')
      +'<button class="btn btn-quiet" data-act="sq-det" data-i="'+i+'">Detalhes</button></div></div></article>';
@@ -122,12 +122,12 @@ function searchResults(){
 async function addBook(b,shelf,total){
   if(inShelf(b.gid))return;
   const profile=stateKey;
-  S.books.push({id:uid(),gid:b.gid,title:b.title,author:b.author,total:total,page:0,done:false,shelf:shelf,cover:b.cover,desc:shortDescription(b.desc,300),year:b.year});
+  S.books.push({id:uid(),gid:b.gid,title:b.title,author:b.author,total:total,page:0,done:false,shelf:shelf,cover:b.cover,desc:String(b.desc||'').slice(0,SYNOPSIS_MAX),language:b.language||'',year:b.year});
   save();closeSheet();render();
   toast(['Adicionado: '+b.title,shelf==='want'?'Estante: Quero ler':'Estante: Lendo']);
   const saved=inShelf(b.gid);
   const desc=await catalogDescription(b);
-  if(stateKey===profile&&inShelf(b.gid)===saved&&desc&&!saved.desc){saved.desc=shortDescription(desc,700);save();}
+  if(stateKey===profile&&inShelf(b.gid)===saved&&desc&&!saved.desc){saved.desc=desc.slice(0,SYNOPSIS_MAX);save();}
   if(b.cover)rememberCover(b.cover);
 }
 function pickShelf(i,shelf){
@@ -141,15 +141,20 @@ function pickShelf(i,shelf){
 function openDet(i){
   const b=SQ.res&&SQ.res[i];if(!b)return;
   if(b.localId){const saved=S.books.find(x=>x.id===b.localId);if(saved)openShelfBook(saved);return;}
-  const d=shortDescription(b.desc,700);
+  const description=String(b.desc||'');
   openSheet('<h2 id="sh-t">'+esc(b.title)+'</h2><div class="det">'+coverImg(b.cover,'cv big')+'<div><p class="muted">'+esc(b.author||'Autor não informado')+'</p>'
    +'<p class="muted num">'+[b.pages?b.pages+' páginas':'',b.year,b.rating?'★ '+b.rating:''].filter(Boolean).join(' · ')+'</p>'+(b.cats?'<p class="muted">'+esc(b.cats)+'</p>':'')+'</div></div>'
-   +'<p class="det-d" id="catalog-synopsis">'+(d?esc(d):'Sem sinopse disponível.')+'</p>'
+   +'<div id="catalog-synopsis">'+bookSynopsis(description,b.language)+'</div>'
    +'<div class="row">'+(inShelf(b.gid)?'<span class="pill">Na estante</span>':'<button class="btn btn-soft" data-act="sq-add" data-i="'+i+'" data-s="want">Quero ler</button><button class="btn btn-ghost" data-act="sq-add" data-i="'+i+'" data-s="read">Lendo</button>')
    +'<a class="btn btn-ghost" href="'+catalogLink(b)+'" target="_blank" rel="noopener">Ver no catálogo</a></div>'
    +'<div class="row"><button class="btn btn-quiet" type="button" data-act="close">Fechar</button></div>');
   const synopsis=$('#catalog-synopsis');
-  if(synopsis&&!d)catalogDescription(b).then(desc=>{if(desc&&$('#catalog-synopsis')===synopsis)synopsis.textContent=shortDescription(desc,700);});
+  if(synopsis&&description)identifySynopsis($('.book-synopsis',synopsis));
+  if(synopsis&&!description)catalogDescription(b).then(desc=>{
+    if(!desc||$('#catalog-synopsis')!==synopsis)return;
+    synopsis.innerHTML=bookSynopsis(desc,b.language);
+    identifySynopsis($('.book-synopsis',synopsis));
+  });
 }
 const _eyebrow2=eyebrow;
 eyebrow=function(){return tab==='search'?'Catálogo de livros':_eyebrow2();};

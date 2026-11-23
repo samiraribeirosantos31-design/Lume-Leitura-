@@ -28,7 +28,7 @@ function harness(options={}){
    return {ok:true,json:async()=>options.release||{body:'LUME_BUILD_CODE=111 LUME_VERSION=1.1.1',assets:[{name:'app-debug.apk'}]}};}
  };
  ctx.window=ctx;
- if(options.native)ctx.Capacitor={isNativePlatform:()=>true,Plugins:{LocalNotifications:notifications,Browser:{open:async({url})=>opened.push(url)},ReadingTimer:options.readingTimer}};
+ if(options.native)ctx.Capacitor={isNativePlatform:()=>true,Plugins:{LocalNotifications:notifications,Browser:{open:async({url})=>opened.push(url)},ReadingTimer:options.readingTimer,BookTranslator:options.bookTranslator}};
  vm.createContext(ctx);
  files.forEach(f=>{
   vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f});
@@ -36,7 +36,7 @@ function harness(options={}){
  });
  vm.runInContext('startApp()',ctx);
  const evaluate=code=>vm.runInContext(code,ctx);
- const click=async (act,dataset={})=>{const a={dataset:{act,...dataset},setAttribute(){}};for(const f of events.click||[])await f({target:{closest:s=>s==='[data-act]'?a:null}});};
+ const click=async (act,dataset={},synopsis=null)=>{const a={dataset:{act,...dataset},setAttribute(){},closest:()=>synopsis};for(const f of events.click||[])await f({target:{closest:s=>s==='[data-act]'?a:null}});};
  return {evaluate,click,elements,storage,scheduled,opened,callbacks,calls:()=>calls};
 }
 async function settle(){for(let i=0;i<20;i++)await Promise.resolve();}
@@ -427,4 +427,36 @@ test('livros, duração e lembrete usam listas do tema e os mascotes são fronta
  assert.match(h.evaluate("mascotArt('fenix',3,'normal','none',30)"),/data-pose="front"/);
  assert.equal(h.evaluate("canUseMascot('fantasma',70)"),false);
  assert.equal(h.evaluate("canUseMascot('baleia',1)"),true);
+});
+
+test('sinopse inglesa pode ser traduzida e voltar ao original; a sinopse em português mantém o texto',async()=>{
+ let calls=0;
+ const h=harness({native:true,bookTranslator:{
+  identify:async()=>({language:'en'}),
+  translate:async({text})=>{calls++;assert.equal(text,'The young reader finds a book with her sister.');return {text:'A jovem leitora encontra um livro com a irmã.'};}
+ }});
+ const english='The young reader finds a book with her sister.';
+ const portuguese='Uma jovem leitora encontra um livro com a irmã.';
+ assert.match(h.evaluate('bookSynopsis('+JSON.stringify(english)+',"en")'),/data-act="synopsis-translate">/);
+ assert.match(h.evaluate('bookSynopsis('+JSON.stringify(portuguese)+',"en")'),/data-act="synopsis-translate" hidden/);
+ const nodes=new Map();
+ const root={dataset:{synopsis:english,limit:'120'},isConnected:true,querySelector:s=>{
+   if(!nodes.has(s))nodes.set(s,{setAttribute(){}});
+   return nodes.get(s);
+ }};
+ const text=root.querySelector('[data-synopsis-text]');
+ await h.click('synopsis-translate',{},root);
+ assert.equal(text.textContent,'A jovem leitora encontra um livro com a irmã.');
+ assert.equal(root.querySelector('[data-synopsis-credit]').hidden,false);
+ await h.click('synopsis-translate',{},root);
+ assert.equal(text.textContent,english);
+ await h.click('synopsis-translate',{},root);
+ assert.equal(calls,1);
+});
+
+test('as sinopses longas podem ser expandidas e o golfinho está na coleção aquática',()=>{
+ const h=harness();
+ assert.match(h.evaluate('bookSynopsis("Uma sinopse comprida ".repeat(50),"pt")'),/aria-expanded="false">Ver mais/);
+ assert.ok(h.evaluate("AQUATIC.includes('golfinho')&&canUseMascot('golfinho',1)"));
+ assert.match(h.evaluate("mascotArt('golfinho',2,'normal','bow',5)"),/data-wardrobe="bow"/);
 });

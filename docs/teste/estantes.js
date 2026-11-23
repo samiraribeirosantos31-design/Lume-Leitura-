@@ -55,14 +55,14 @@ const _shelfRender=render;
 render=function(){_shelfRender();if(tab==='books')paintShelfCovers();};
 function openShelfBook(b){
   const pct=Math.min(100,Math.round(b.page/Math.max(1,b.total)*100));
-  const summary=b.desc?esc(b.desc):'Resumo indisponível para este livro.';
   openSheet('<h2 id="sh-t">'+esc(b.title)+'</h2><div class="det">'+shelfCover(b)+'<div>'
     +'<p>'+esc(b.author||'Autor não informado')+'</p><p class="muted">'+[b.year,b.total+' páginas',shelfLabel(b)].filter(Boolean).map(esc).join(' · ')+'</p></div></div>'
-    +'<p class="det-d">'+summary+'</p><progress class="shelf-progress" max="100" value="'+pct+'" aria-label="Progresso da leitura"></progress>'
+     +bookSynopsis(b.desc,b.language,{empty:'Resumo indisponível para este livro.'})+'<progress class="shelf-progress" max="100" value="'+pct+'" aria-label="Progresso da leitura"></progress>'
     +'<p class="muted">'+b.page+' de '+b.total+' páginas · '+pct+'%</p><div class="row">'
     +(!b.done?'<button class="btn btn-primary" data-act="log" data-id="'+esc(b.id)+'">Registrar leitura</button>':'')
     +'<button class="btn btn-ghost" data-act="bk-menu" data-id="'+esc(b.id)+'">Mais opções</button>'
     +'<button class="btn btn-quiet" data-act="close">Fechar</button></div>');
+  const sheet=$('.sheet');if(sheet)identifySynopsis($('.book-synopsis',sheet));
   paintShelfCovers();
 }
 function shelfTile(b){
