@@ -34,6 +34,7 @@ function harness(options={}){
   vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f});
   if(f==='nuvem-config.js'&&options.config)ctx.NUVEM=options.config;
  });
+ vm.runInContext('startApp()',ctx);
  const evaluate=code=>vm.runInContext(code,ctx);
  const click=async (act,dataset={})=>{const a={dataset:{act,...dataset},setAttribute(){}};for(const f of events.click||[])await f({target:{closest:s=>s==='[data-act]'?a:null}});};
  return {evaluate,click,elements,storage,scheduled,opened,callbacks,calls:()=>calls};
@@ -201,7 +202,7 @@ test('cronômetro central é único, modo noturno restaura brilho e a notificaç
  assert.equal(state.running,true);
  assert.match(sheet.innerHTML,/sheet-center reading-focus/);
  assert.equal((sheet.innerHTML.match(/role="timer"/g)||[]).length,1);
- assert.doesNotMatch(h.evaluate('viewToday()'),/role="timer"|Descartar/);
+ assert.match(h.evaluate('viewToday()'),/id="tm-home-time"/);
  h.elements.set('tm-focus-time',{});
  await h.click('tm-night');
  await settle();
@@ -212,7 +213,8 @@ test('cronômetro central é único, modo noturno restaura brilho e a notificaç
  h.elements.delete('tm-focus-time');
  await settle();
  assert.deepEqual(brightness,[true,false]);
- assert.equal(h.evaluate('S.timer.running'),true);
+ assert.equal(h.evaluate('S.timer.running'),false);
+ assert.match(h.evaluate('viewToday()'),/Leitura pausada.*Retomar leitura/);
  assert.equal(sheet.innerHTML,'');
  await openSession({id:'outro-perfil'});
  assert.equal(sheet.innerHTML,'');
@@ -358,7 +360,7 @@ test('o balão alterna entre sugestão e citação e os retratos usam roupas por
  h.evaluate('readingQuote.shown=1');
  assert.match(h.evaluate("mascotVoiceHtml('Vamos ler?','normal')"),/pet-advice/);
  assert.match(h.evaluate("mascotArt('leao',2,'normal','bow',8)"),/data-wardrobe="bow" transform="translate\(100 145\)/);
- assert.match(h.evaluate("mascotArt('fantasma',3,'normal','bow',10)"),/data-creature="fantasma".*data-wardrobe="bow" transform="translate\(103 119\)/);
+ assert.match(h.evaluate("mascotArt('grifo',3,'normal','bow',10)"),/data-creature="grifo".*data-wardrobe="bow" transform="translate\(100 132\)/);
  assert.notEqual(h.evaluate("mascotArt('dragao',3,'normal','none',10)"),h.evaluate("mascotArt('dragao',3,'normal','none',50)"));
 });
 
@@ -378,4 +380,51 @@ test('uma sessão agrupa novos marcos no app e no Android e respeita a permissã
    await h.click('reward-view');
    assert.equal(h.evaluate('tab'),'ach');
  }
+});
+
+test('cronômetro web atualiza ao abrir, congela ao sair e volta contando após Retomar',async()=>{
+ const h=harness();
+ h.evaluate("S.books=[{id:'bk',title:'Título longo para teste',page:0,total:200}];startReadingTimer('bk');");
+ h.elements.set('tm-focus-time',{textContent:''});
+ h.evaluate('S.timer.t0=Date.now()-4250;renderTimerClock()');
+ assert.equal(h.elements.get('tm-focus-time').textContent,'00:04');
+ await h.click('close');
+ const elapsed=h.evaluate('S.timer.acc');
+ assert.ok(elapsed>=4250);
+ assert.equal(h.evaluate('S.timer.running'),false);
+ assert.equal(h.evaluate('tmMs()'),elapsed);
+ assert.match(h.evaluate('tmCard()'),/00:04.*Retomar leitura/);
+ await h.click('tm-resume');
+ assert.equal(h.evaluate('S.timer.running'),true);
+ assert.match(h.elements.get('sheet-root').innerHTML,/sheet-center reading-focus/);
+ assert.equal(h.evaluate('S.timer.acc'),elapsed);
+ assert.equal(h.evaluate('window.lumeHandleBack()'),true);
+ assert.equal(h.evaluate('S.timer.running'),false);
+});
+
+test('balão dispensa sem voltar no mesmo painel, vence em três minutos e abre texto integral',async()=>{
+ const h=harness();
+ h.evaluate("S.books=[{id:'b',title:'Livro',author:''}];readingQuote={profile:stateKey,bookId:'b',due:0,shown:0,text:'Um trecho especial '.repeat(22),origin:'Destaque'};beginMascotVoice();");
+ const voice=h.evaluate("mascotVoiceHtml('Experimente mais um capítulo','normal')");
+ assert.match(voice,/Ver mais.*Fechar diálogo/);
+ await h.click('quote-open');
+ assert.match(h.elements.get('sheet-root').innerHTML,/Um trecho especial (Um trecho especial ){20}/);
+ await h.click('voice-dismiss');
+ assert.equal(h.evaluate("mascotVoiceHtml('Vamos ler?','normal')"),'');
+ h.evaluate('beginMascotVoice();voiceVisit.until=Date.now()-1');
+ assert.equal(h.evaluate("mascotVoiceHtml('Vamos ler?','normal')"),'');
+});
+
+test('livros, duração e lembrete usam listas do tema e os mascotes são frontais',()=>{
+ const h=harness();
+ h.evaluate("S.books=Array.from({length:6},(_,i)=>({id:String(i),author:'Autora',title:'Um título extenso sem cortes nas opções '+i,page:0,total:200}));openLog('1');");
+ const form=h.elements.get('sheet-root').innerHTML;
+ assert.match(form,/data-choice="f-book".*Um título extenso sem cortes nas opções 5/);
+ assert.match(form,/Buscar pelo título ou autor/);
+ assert.match(form,/data-choice="f-hours".*data-choice="f-min"/);
+ assert.doesNotMatch(form,/<select/);
+ assert.match(h.evaluate('lemHtml()'),/data-choice="lem-hour".*data-choice="lem-minute"/);
+ assert.match(h.evaluate("mascotArt('fenix',3,'normal','none',30)"),/data-pose="front"/);
+ assert.equal(h.evaluate("canUseMascot('fantasma',70)"),false);
+ assert.equal(h.evaluate("canUseMascot('baleia',1)"),true);
 });

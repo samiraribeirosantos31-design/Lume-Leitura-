@@ -12,6 +12,17 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onBackPressed() {
+        if (getBridge() == null) {
+            super.onBackPressed();
+            return;
+        }
+        getBridge().getWebView().evaluateJavascript("Boolean(window.lumeHandleBack && window.lumeHandleBack())", handled -> {
+            if (!"true".equals(handled)) super.onBackPressed();
+        });
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
         super.onNewIntent(intent);

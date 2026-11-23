@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="booting">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -12,6 +12,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icone.svg">
 <link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+<style>.booting body{visibility:hidden;background:#f4effb}</style>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="style2.css">
 <link rel="stylesheet" href="extra.css">
@@ -65,6 +66,7 @@
 <script src="build-info.js"></script>
 <script src="nuvem-config.js"></script>
 <script src="app1.js"></script>
+<script src="escolhas.js"></script>
 <script src="evolucao.js"></script>
 <script src="recompensas.js"></script>
 <script src="app2.js"></script>
@@ -77,6 +79,7 @@
 <script src="mascotes4.js"></script>
 <script src="mascote-roupas.js"></script>
 <script src="fantasticos.js"></script>
+<script src="aquaticos.js"></script>
 <script src="temas.js"></script>
 <script src="mascote-painel.js"></script>
 <script src="busca.js"></script>
@@ -90,7 +93,7 @@
 <script src="guia.js"></script>
 <script src="ajustes.js"></script>
 <script>
-render();
+startApp();
 if('serviceWorker' in navigator&&!window.Capacitor&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){});}
 </script>
 </body>

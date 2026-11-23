@@ -1,8 +1,8 @@
 :root{
   color-scheme:light; --bg:#F4EFFB; --surface:#FFFFFF; --surface-2:#EAE0F7;
   --ink:#141C33; --ink-2:#4A5471; --ink-3:#8E98B4; --line:#D8DEEA;
-  --accent:#FFB400; --on-accent:#1A1300;
-  --pet:#1F8F83; --pet-deep:#146259; --pet-belly:#CDEDE7; --pet-wash:#DCF1ED; --pet-text:#146259;
+  --accent:#c8a8ed; --on-accent:#191226;
+  --pet:#8c56c5; --pet-deep:#683399; --pet-belly:#f0e1f8; --pet-wash:#f1eaf7; --pet-text:#462765;
   --bad:#B3302F; --scrim:rgba(20,28,51,.45); --shadow:rgba(20,28,51,.14);
   --eye:#FFFFFF; --pupil:#141C33; --blush:#FF8FA3; --page:#FFFFFF;
   --font-display:'Bricolage Grotesque','Arial Rounded MT Bold',system-ui,sans-serif;

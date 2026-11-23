@@ -43,7 +43,7 @@ function openLog(id,{timer=false}={}){
   if(!sel)sel=open[0].id;
   const book=open.find(b=>b.id===sel);
   openSheet('<h2 id="sh-t" tabindex="-1">Registrar leitura</h2><form id="form-log" novalidate>'
-   +'<label for="f-book">Livro</label><select id="f-book">'+open.map(b=>'<option value="'+b.id+'"'+(b.id===sel?' selected':'')+'>'+esc(b.title)+'</option>').join('')+'</select>'
+   +'<label for="f-book-control">Livro</label>'+choiceField('f-book','Livro',bookChoices(open),sel,{search:open.length>5,locked:timer})
    +readingDuration(timer)
    +'<label for="f-page">Parei na página</label><input id="f-page" type="number" inputmode="numeric" min="0" value="'+book.page+'">'
    +'<p class="hint" id="f-hint">Você estava na página '+book.page+' de '+book.total+'.</p>'
@@ -55,11 +55,11 @@ function curBook(){const el=$('#f-book');return el?S.books.find(b=>b.id===el.val
 function readingDuration(timed){
   if(timed)return '<input type="hidden" id="timer-session" value="'+esc(S.timer.id)+'">'
     +'<p class="reading-measured"><b>'+readingDurationLabel(measuredMinutes())+'</b> · Cronometrado no Lume</p>';
-  const opts=(n,unit)=>Array.from({length:n},(_,v)=>'<option value="'+v+'">'+v+' '+unit+'</option>').join('');
   return '<fieldset class="reading-duration"><legend>Tempo de leitura</legend>'
     +'<div class="chips">'+[10,15,20,30,45,60].map(v=>'<button type="button" class="chip" data-act="chip" data-v="'+v+'" aria-pressed="false">'+readingDurationLabel(v)+'</button>').join('')+'</div>'
     +'<details id="duration-picker"><summary id="duration-value">Escolher duração</summary><div class="duration-parts">'
-    +'<label>Horas<select id="f-hours">'+opts(11,'h')+'</select></label><label>Minutos<select id="f-min">'+opts(60,'min')+'</select></label>'
+    +'<div><label for="f-hours-control">Horas</label>'+choiceField('f-hours','Horas',numberChoices(11,'h'),0)+'</div>'
+    +'<div><label for="f-min-control">Minutos</label>'+choiceField('f-min','Minutos',numberChoices(60,'min'),0)+'</div>'
     +'</div><button type="button" class="btn btn-soft btn-block" data-act="duration-done">Confirmar duração</button></details>'
     +'<p class="hint">Registros manuais ajudam o mascote até o nível 10.</p></fieldset>';
 }
@@ -80,8 +80,8 @@ function formReadingMinutes(){
   return Number.isInteger(h)&&Number.isInteger(m)&&h>=0&&m>=0&&m<60?h*60+m:NaN;
 }
 function fillReadingMinutes(total){
-  const h=$('#f-hours'),m=$('#f-min');if(!h||!m)return;
-  h.value=Math.floor(total/60);m.value=total%60;preview();
+  if(!setChoice('f-hours',Math.floor(total/60))||!setChoice('f-min',total%60))return;
+  preview();
 }
 function preview(){
   const b=curBook();if(!b)return;
@@ -162,7 +162,7 @@ function wipeData(){
 
 document.addEventListener('click',function(e){
   const tb=e.target.closest('[data-tab]');
-  if(tb){tab=tb.dataset.tab;ask=null;render();window.scrollTo(0,0);return;}
+  if(tb){if(tab===tb.dataset.tab)return;closeSheet();tab=tb.dataset.tab;ask=null;render();window.scrollTo(0,0);return;}
   const a=e.target.closest('[data-act]');if(!a)return;
   const act=a.dataset.act,id=a.dataset.id;
   switch(act){
@@ -201,10 +201,9 @@ document.addEventListener('change',function(e){
   const b=curBook();if(!b)return;
   $('#f-page').value=b.page;$('#f-hint').textContent='Você estava na página '+b.page+' de '+b.total+'.';preview();
 });
-document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('.sheet'))closeSheet();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('.sheet')){e.preventDefault();closeSheet();}});
 
 S=load();
 if(!S){S=emptyState();}
 if(!S.seen){S.seen=S.demo?[]:unlockedIds();}
 save();
-render();

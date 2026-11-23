@@ -21,10 +21,9 @@ const petMounts={
   cachorro:{head:[100,61,.98],chest:[100,144,.9]},
   coelho:{head:[100,50,.78],chest:[100,144,.85]},
   borboleta:{head:[100,63,.53],chest:[100,106,.56],eyes:[100,82,.43],back:[100,120,.6],hip:[116,140,.7]},
-  dragao:{head:[128,69,.78,-9],chest:[119,125,.84,-11],eyes:[127,78,.53,-8],back:[97,128,.85],hip:[111,145,.76]},
-  fenix:{head:[115,70,.77,-8],chest:[111,113,.68],eyes:[116,82,.45],back:[93,110,.7],hip:[111,145,.69]},
-  grifo:{head:[128,70,.72,9],chest:[122,120,.7,8],eyes:[127,84,.49],back:[104,127,.7],hip:[110,147,.7]},
-  fantasma:{head:[99,61,.86],chest:[103,119,.83],eyes:[100,94,.72],back:[100,117,.75],hip:[135,124,.74]}
+  dragao:{head:[100,53,.86],chest:[100,142,.78],eyes:[100,89,1],back:[100,131,.94],hip:[139,151,.80]},
+  fenix:{head:[100,62,.73],chest:[100,123,.75],eyes:[100,89,1],back:[100,112,.81],hip:[130,145,.72]},
+  grifo:{head:[100,58,.81],chest:[100,132,.77],eyes:[100,86,1],back:[100,123,.89],hip:[141,147,.75]}
 };
 function mascotGarment(kind,key,level){
   const [slot,art]=wardrobe[key]||[];

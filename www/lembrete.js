@@ -31,7 +31,8 @@ function lemHtml(){
   const l=lem(),nat=!!LN();
   return '<div class="look" id="lem-zone"><label>Lembrete para ler</label>'
    +'<div class="row lem-r"><button type="button" class="chip" data-act="lem-toggle" aria-pressed="'+l.on+'">'+(l.on?'Ligado':'Desligado')+'</button>'
-   +'<input id="lem-h" type="time" value="'+hhmm(l)+'" aria-label="Horário do lembrete"></div>'
+   +'</div><div class="duration-parts"><div><label for="lem-hour-control">Hora</label>'+choiceField('lem-hour','Hora do lembrete',numberChoices(24),l.h)+'</div>'
+   +'<div><label for="lem-minute-control">Minuto</label>'+choiceField('lem-minute','Minuto do lembrete',numberChoices(60),l.m)+'</div></div>'
    +'<p class="muted" id="lem-msg">'+(nat?'Você receberá uma notificação todos os dias nesse horário.':'No navegador, a notificação só aparece com o app aberto. Para um aviso de verdade, use o botão abaixo e adicione ao calendário do celular.')+'</p>'
    +(nat?'':'<button type="button" class="btn btn-soft btn-block" data-act="lem-ics">Adicionar lembrete ao calendário</button>')+'</div>';
 }
@@ -49,8 +50,8 @@ document.addEventListener('click',async function(e){
   else if(r==='ok')toast(['Lembrete ligado para '+hhmm(l)]);
 });
 document.addEventListener('change',async function(e){
-  if(e.target.id!=='lem-h'||!e.target.value)return;
-  const p=e.target.value.split(':'),l=lem();l.h=+p[0];l.m=+p[1];S.lembrete=l;save();
+  if(!['lem-hour','lem-minute'].includes(e.target.id))return;
+  const l=lem();l.h=Number($('#lem-hour').value);l.m=Number($('#lem-minute').value);S.lembrete=l;save();
   await lemAgendar();lemWeb();
 });
 const _viewToday3=viewToday;

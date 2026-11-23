@@ -52,7 +52,7 @@ function petEditorBody(j){
   const stage=Math.max(1,journeyStage(j));
   const selected=MASC.find(m=>m[0]===petDraft.kind);
   const tabs=[['species','Mascotes'],['gear','Acessórios'],...(j.level>=30?[['secret','Trilha secreta']]:[])];
-  let items=petTiles(MASC.filter(m=>(m[2]||1)===1),j.level)+'<h3>Mascotes fantásticos</h3>'+petTiles(MASC.filter(m=>m[2]===10),j.level);
+  let items=petTiles(MASC.filter(m=>(m[2]||1)===1&&!AQUATIC.includes(m[0])),j.level)+'<h3>Aquáticos</h3>'+petTiles(MASC.filter(m=>AQUATIC.includes(m[0])),j.level)+'<h3>Mascotes fantásticos</h3>'+petTiles(MASC.filter(m=>m[2]===10),j.level);
   if(petDraft.panel==='gear')items='<p class="hint">Roupas especiais a partir do nível 20.</p><div class="mascs pet-grid">'+PET_GEAR.filter(g=>g[2]<=j.ceiling).map(g=>{
     const [key,name,required]=g;
     return j.level<required?'<div class="mc pet-locked pet-gear">'+gearIcons(g)+'<small>Nível '+required+'</small></div>'

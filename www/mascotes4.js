@@ -1,7 +1,7 @@
 /* Desenhos originais dos mascotes e suas silhuetas de evolução. */
 MASC.push(
   ['macaco','Macaquinho'],
-  ['dragao','Dragão estudioso',10],['fenix','Fênix',10],['grifo','Grifo',10],['fantasma','Fantasma',10],
+  ['dragao','Dragão estudioso',10],['fenix','Fênix',10],['grifo','Grifo',10],
   ['cervo','Cervo lunar',40],['serpente','Serpente estelar',50],
   ['lobo','Lobo do eclipse',60],['aurora','Guardião da aurora',70]
 );

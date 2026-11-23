@@ -39,8 +39,10 @@ public class ReadingTimerPlugin extends Plugin {
         if (intent != null) {
             String id = intent.getStringExtra(ReadingTimerReceiver.OPEN_SESSION);
             if (id != null) {
-                intent.removeExtra(ReadingTimerReceiver.OPEN_SESSION);
                 result.put("id", id);
+                result.put("resume", intent.getBooleanExtra(ReadingTimerReceiver.RESUME_SESSION, false));
+                intent.removeExtra(ReadingTimerReceiver.OPEN_SESSION);
+                intent.removeExtra(ReadingTimerReceiver.RESUME_SESSION);
             }
         }
         return result;

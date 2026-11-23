@@ -67,15 +67,14 @@ function openNote(id,presetBook){
   const sel=n?n.bookId:(presetBook||null);
   const pb=sel?S.books.find(b=>b.id===sel):null;
   const pg=n?(n.page||''):(pb&&pb.page>0?pb.page:'');
-  openSheet('<h2 id="sh-t">'+(n?'Editar':'Nova anotação')+'</h2><form id="form-note" novalidate>'
+  openSheet('<h2 id="sh-t" tabindex="-1">'+(n?'Editar':'Nova anotação')+'</h2><form id="form-note" novalidate>'
    +'<label>Tipo</label><div class="chips">'+Object.keys(KIND).map(t=>'<button type="button" class="chip" data-act="nt-kind" data-v="'+t+'" aria-pressed="'+(t===ntKind)+'">'+KIND[t]+'</button>').join('')+'</div>'
    +'<div id="nt-colors"><label>Cor do destaque</label><div class="chips">'+Object.keys(HL).map(c=>'<button type="button" class="chip hlc" data-act="nt-col" data-v="'+c+'" aria-pressed="'+(c===ntCol)+'" style="--hl:'+HL[c]+'">'+HLN[c]+'</button>').join('')+'</div></div>'
-   +'<label for="nt-book">Livro</label><select id="nt-book"><option value="">Geral (sem livro)</option>'
-   +S.books.map(b=>'<option value="'+b.id+'"'+(b.id===sel?' selected':'')+'>'+esc(b.title)+'</option>').join('')+'</select>'
+   +'<label for="nt-book-control">Livro</label>'+choiceField('nt-book','Livro',[{value:'',label:'Geral (sem livro)'},...bookChoices(S.books)],sel||'',{search:S.books.length>5})
    +'<label for="nt-page">Página <span id="nt-preq"></span></label><input id="nt-page" type="number" inputmode="numeric" min="0" max="5000" value="'+pg+'">'
    +'<label for="nt-text" id="nt-tl">Anotação</label><textarea id="nt-text" rows="5" maxlength="'+NT_MAX+'" placeholder="Trecho, ideia, dúvida ou observação...">'+esc(n?n.text:'')+'</textarea>'
    +'<p class="hint num" id="nt-count"></p><p class="err" id="nt-err" role="alert"></p>'
-   +'<div class="row"><button class="btn btn-primary" type="submit">'+(n?'Atualizar':'Salvar')+'</button><button class="btn btn-ghost" type="button" data-act="close">Cancelar</button></div></form>','nt-text');
+   +'<div class="row"><button class="btn btn-primary" type="submit">'+(n?'Atualizar':'Salvar')+'</button><button class="btn btn-ghost" type="button" data-act="close">Cancelar</button></div></form>','sh-t');
   ntSync();ntCount();
 }
 function ntSync(){

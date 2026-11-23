@@ -1,6 +1,6 @@
 let tmBook=null;
 let readingDim=false;
-const tmMs=()=>{const t=S.timer;return t?t.acc+(t.running?Math.max(0,Date.now()-t.t0):0):0;};
+const tmMs=(t=S.timer)=>t?Math.max(0,Number(t.acc)||0)+(t.running?Math.max(0,Date.now()-(Number(t.t0)||Date.now())):0):0;
 const fmtT=ms=>{
   const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;
   return h?h+':'+pad(m)+':'+pad(r):pad(m)+':'+pad(r);
@@ -14,14 +14,17 @@ function tmCard(){
     if(!tmBook||!open.find(b=>b.id===tmBook))tmBook=open[0].id;
     return '<section class="card tm"><h2>Cronômetro de leitura</h2>'
       +'<p class="muted">Cronometre quanto você lê de verdade. Ao finalizar, o tempo vai direto para o registro.</p>'
-      +'<select id="tm-book" class="tm-sel" aria-label="Livro">'+open.map(b=>'<option value="'+b.id+'"'+(b.id===tmBook?' selected':'')+'>'+esc(b.title)+'</option>').join('')+'</select>'
+      +choiceField('tm-book','Livro para cronometrar',bookChoices(open),tmBook,{search:open.length>5})
       +'<button class="btn btn-soft btn-block" data-act="tm-start">'+ic('i-today')+' Iniciar leitura</button></section>';
   }
   const bk=S.books.find(b=>b.id===t.bookId);
   const status=t.fin?'Tempo pronto para registrar':t.running?'Leitura em andamento':'Leitura pausada';
-  return '<section class="card tm on"><h2>Cronômetro de leitura</h2>'
-    +'<p class="muted">'+status+' · '+esc(bk?bk.title:'Livro removido')+'</p>'
-    +'<button class="btn btn-soft btn-block" data-act="tm-open">'+(t.fin?'Registrar leitura':'Abrir cronômetro')+'</button></section>';
+  const action=t.fin?'tm-open':t.running?'tm-open':'tm-resume';
+  const label=t.fin?'Registrar leitura':t.running?'Abrir cronômetro':'Retomar leitura';
+  return '<section class="card tm on"><div class="timer-home-label"><h2>Cronômetro de leitura</h2>'
+    +'<p class="muted">'+status+' · '+esc(bk?bk.title:'Livro removido')+'</p></div>'
+    +'<div class="timer-home-count num" id="tm-home-time" role="timer" aria-label="Tempo da sessão">'+fmtT(tmMs(t))+'</div>'
+    +'<button class="btn btn-soft btn-block" data-act="'+action+'">'+label+'</button></section>';
 }
 
 function rhythmCard(){
@@ -58,14 +61,16 @@ function rhythmCard(){
 
 const _viewToday=viewToday;
 viewToday=function(){
-  const h=_viewToday(),key='<section class="card"><div class="chart-h">',i=h.indexOf(key),extra=tmCard()+rhythmCard();
-  return i>=0?h.slice(0,i)+extra+h.slice(i):h+extra;
+  const h=_viewToday(),key='<section class="card"><div class="chart-h">',i=h.indexOf(key);
+  const extra=(S.timer?'':tmCard())+rhythmCard();
+  const body=i>=0?h.slice(0,i)+extra+h.slice(i):h+extra;
+  return S.timer?body.replace('</section>','</section>'+tmCard()):body;
 };
 const readingPlugin=()=>window.Capacitor?.Plugins?.ReadingTimer;
 let visibleTimer, timerNativeOps=Promise.resolve();
 function timerBridge(action,params){
   const plugin=readingPlugin();if(typeof plugin?.[action]!=='function')return Promise.resolve(null);
-  const operation=timerNativeOps.then(()=>plugin[action](params));
+  const operation=timerNativeOps.then(()=>plugin[action](params||{}));
   timerNativeOps=operation.catch(()=>null);
   return timerNativeOps;
 }
@@ -96,7 +101,7 @@ async function readNativeTimer(publishMissing=false){
     if(!Number.isFinite(acc)||!Number.isFinite(t0))return;
     Object.assign(before,{t0,acc,running,fin,changedAt});
     save();render();
-    if($('#tm-focus-time'))openTimerPanel();
+    if(timerPanelOpen)openTimerPanel();
   }else if(publishMissing)publishTimer();
 }
 let nativeNight=false;
@@ -111,27 +116,67 @@ function setReadingNight(enabled){
   readingDim=enabled;
   syncReadingNight();
 }
-const showBeforeReading=openSheet, closeBeforeReading=closeSheet;
+let clockTick=0,timerPanelOpen=false;
+function renderTimerClock(){
+  clearTimeout(clockTick);
+  const t=S.timer;if(!t)return;
+  const focus=$('#tm-focus-time'),home=$('#tm-home-time'),ms=tmMs(t),display=fmtT(ms);
+  if(focus&&focus.textContent!==display)focus.textContent=display;
+  if(home&&home.textContent!==display)home.textContent=display;
+  if(t.running&&!document.hidden&&(focus||home))clockTick=setTimeout(renderTimerClock,Math.max(24,1000-ms%1000));
+}
+function pauseTimerSession(t=S.timer){
+  if(!t?.running||t.fin)return false;
+  t.acc=tmMs(t);t.running=false;stampTimer(t);save();publishTimer();
+  return true;
+}
+function resumeTimerSession(){
+  const t=S.timer;
+  if(!t||t.fin)return;
+  if(!t.running){
+    t.t0=Date.now();t.running=true;stampTimer(t);save();publishTimer();render();
+  }
+  if(typeof stopMascotVoice==='function')stopMascotVoice();
+  openTimerPanel();
+}
+function leaveTimerPanel(){
+  const wasOpen=timerPanelOpen;
+  timerPanelOpen=false;
+  document.body.classList.remove('timer-focus-open');
+  setReadingNight(false);
+  const paused=pauseTimerSession();
+  if(wasOpen&&tab==='today'&&typeof beginMascotVoice==='function')beginMascotVoice();
+  if(paused||wasOpen)render();
+  else renderTimerClock();
+}
+const showBeforeReading=openSheet,closeBeforeReading=closeSheet;
 openSheet=function(html,focusId,variant=''){
-  if(variant!=='sheet-center reading-focus')setReadingNight(false);
+  if(variant!=='sheet-center reading-focus')leaveTimerPanel();
   showBeforeReading(html,focusId,variant);
 };
 closeSheet=function(){
-  setReadingNight(false);
   closeBeforeReading();
+  leaveTimerPanel();
+};
+window.lumeHandleBack=()=>{
+  if(dismissChoice())return true;
+  if(!timerPanelOpen&&!$('.sheet'))return false;
+  closeSheet();return true;
 };
 
 function openTimerPanel(){
   const t=S.timer,b=S.books.find(x=>x.id===t?.bookId);
   if(!t||!b)return;
   if(t.fin){openTimerLog();return;}
+  timerPanelOpen=true;document.body.classList.add('timer-focus-open');
   openSheet('<p class="eyebrow">'+(t.running?'Leitura em andamento':'Leitura pausada')+'</p>'
     +'<h2 id="sh-t" tabindex="-1">'+esc(b.title)+'</h2>'
     +'<div class="tm-disp num" id="tm-focus-time" role="timer" aria-label="Tempo de leitura">'+fmtT(tmMs())+'</div>'
-    +'<div class="reading-actions"><button type="button" class="btn btn-soft" data-act="'+(t.running?'tm-pause':'tm-resume')+'">'+(t.running?'Pausar':'Continuar')+'</button>'
+    +'<div class="reading-actions"><button type="button" class="btn btn-soft" data-act="'+(t.running?'tm-pause':'tm-resume')+'">'+(t.running?'Pausar':'Retomar leitura')+'</button>'
     +'<button type="button" class="btn btn-primary" data-act="tm-finish">Encerrar e registrar</button></div>'
     +'<div class="reading-options"><button type="button" id="tm-night" class="btn btn-ghost" aria-pressed="'+readingDim+'" data-act="tm-night">Modo noturno</button>'
     +'<button type="button" class="btn btn-ghost" data-act="close">Voltar ao app</button></div>','sh-t','sheet-center reading-focus');
+  renderTimerClock();
 }
 function openTimerLog(){
   const t=S.timer;
@@ -145,7 +190,9 @@ function startReadingTimer(bookId){
   if(S.timer){openTimerPanel();return;}
   tmBook=bookId;setReadingNight(false);
   S.timer={id:uid(),bookId,t0:Date.now(),acc:0,running:true,fin:false};
-  stampTimer(S.timer);save();render();openingReadingQuote(bookId);openTimerPanel();
+  stampTimer(S.timer);save();render();openingReadingQuote(bookId);
+  if(typeof stopMascotVoice==='function')stopMascotVoice();
+  openTimerPanel();
 }
 const _submitLog=submitLog;
 submitLog=function(){
@@ -190,10 +237,10 @@ document.addEventListener('click',async function(e){
   switch(act){
     case 'tm-open':openTimerPanel();break;
     case 'tm-pause':
-      if(t.running){t.acc=tmMs();t.running=false;stampTimer(t);save();render();publishTimer();openTimerPanel();}
+      if(pauseTimerSession(t)){render();openTimerPanel();}
       break;
     case 'tm-resume':
-      if(!t.running&&!t.fin){t.t0=Date.now();t.running=true;stampTimer(t);save();render();publishTimer();openTimerPanel();}
+      resumeTimerSession();
       break;
     case 'tm-finish':
       if(!t.fin){t.acc=tmMs();t.running=false;t.fin=true;stampTimer(t);save();render();publishTimer();}
@@ -203,21 +250,26 @@ document.addEventListener('click',async function(e){
 document.addEventListener('change',function(e){if(e.target.id==='tm-book')tmBook=e.target.value;});
 async function showNotificationTimer(result){
   const timer=S.timer,profile=stateKey;
-  if(!timer||timer.id!==result?.id)return;
+  if(!timer||timer.id!==result?.id)return false;
   await readNativeTimer();
-  if(S.timer===timer&&profile===stateKey)openTimerPanel();
+  if(S.timer!==timer||profile!==stateKey)return false;
+  if(result.resume&&!timer.fin)resumeTimerSession();
+  else openTimerPanel();
+  return true;
 }
-const nativeReading=readingPlugin();
-if(typeof nativeReading?.addListener==='function'){
-  nativeReading.addListener('openSession',showNotificationTimer).catch(()=>{});
+function mountReadingTimer(){
+  const nativeReading=readingPlugin();
+  renderTimerClock();
+  if(typeof nativeReading?.addListener==='function'){
+    try{Promise.resolve(nativeReading.addListener('openSession',showNotificationTimer)).catch(()=>{});}catch(e){}
+  }
+  timerBridge('takeOpenSession').then(async result=>{
+    const opened=await showNotificationTimer(result);
+    if(!opened&&!timerPanelOpen&&pauseTimerSession())render();
+  }).catch(()=>{});
 }
-timerBridge('takeOpenSession').then(showNotificationTimer);
 document.addEventListener('visibilitychange',()=>{
   syncReadingNight();
-  if(!document.hidden)readNativeTimer();
+  if(!document.hidden){renderTimerClock();readNativeTimer();}
 });
-window.addEventListener('focus',()=>readNativeTimer());
-setInterval(function(){
-  const el=$('#tm-focus-time');if(el&&S.timer)el.textContent=fmtT(tmMs());
-},500);
-render();
+window.addEventListener('focus',()=>{renderTimerClock();readNativeTimer();});

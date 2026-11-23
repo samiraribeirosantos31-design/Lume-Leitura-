@@ -22,7 +22,7 @@ document.addEventListener('click',e=>{
 
 const LUME_URL='https://samiraribeirosantos31-design.github.io/Lume-Leitura-/';
 const SHARE_LINE='Organize sua estante e acompanhe suas leituras no Lume Leitura.';
-const QUOTE_LIMIT=180;
+const VOICE_TIME=180000;
 const knownQuotes=[
   {id:'dom-casmurro-ressaca',title:'Dom Casmurro',author:'Machado de Assis',text:'Olhos de ressaca? Vá, de ressaca.'},
   {id:'dom-casmurro-retorica',title:'Dom Casmurro',author:'Machado de Assis',text:'Retórica dos namorados, dá-me uma comparação exata e poética para dizer o que foram aqueles olhos de Capitu.'},
@@ -30,11 +30,11 @@ const knownQuotes=[
   {id:'bras-marcela',title:'Memórias Póstumas de Brás Cubas',author:'Machado de Assis',text:'Marcela amou-me durante quinze meses e onze contos de réis'}
 ];
 const quoteNorm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-let readingQuote=null,lastQuote=null,voiceTimer=0,blinkTimer=0;
+let readingQuote=null,lastQuote=null,voiceTimer=0,blinkTimer=0,voiceVisit=null,shownTab=null;
 function bookQuotes(book){
   const title=quoteNorm(book.title),author=quoteNorm(book.author);
   return [
-    ...S.notes.filter(n=>!n.demo&&n.type==='destaque'&&n.bookId===book.id&&n.text.trim().length<=QUOTE_LIMIT)
+    ...S.notes.filter(n=>!n.demo&&n.type==='destaque'&&n.bookId===book.id&&n.text.trim())
       .map(n=>({id:n.id,text:n.text.trim(),origin:'Trecho destacado',bookId:book.id})).filter(q=>q.text),
     ...knownQuotes.filter(q=>title===quoteNorm(q.title)&&(!author||author.includes(quoteNorm(q.author))))
       .map(q=>({...q,origin:'Clássico em domínio público',bookId:book.id}))
@@ -65,34 +65,44 @@ function openingReadingQuote(bookId){
   readingQuote={...item,profile:stateKey,due:Date.now()+22000,shown:0};
   scheduleMascotVoice();
 }
+function beginMascotVoice(){
+  voiceVisit={profile:stateKey,until:Date.now()+VOICE_TIME,closed:false};
+}
+function stopMascotVoice(){
+  if(voiceVisit)voiceVisit.closed=true;
+  clearTimeout(voiceTimer);
+  const root=$('#pet-voice');if(root)root.innerHTML='';
+}
 function activeMascotQuote(now){
   const q=readingQuote;
   if(S.petQuotes===false||q?.profile!==stateKey||now<q.due||!S.books.some(b=>b.id===q.bookId))return null;
   if(!q.shown&&!document.hidden&&!$('.sheet'))q.shown=now;
-  return q.shown&&now<q.shown+16000?q:null;
+  return q.shown&&now<q.shown+VOICE_TIME?q:null;
 }
 function mascotVoiceHtml(advice,mood){
-  const q=activeMascotQuote(Date.now());
-  const text=q?.text||advice;
-  if(!text)return '';
-  if(q){
-    const brief=text.length>58?text.slice(0,56).trimEnd()+'…':text;
-    return '<button class="pet-bubble pet-quote" type="button" data-act="quote-open" aria-label="Ler trecho completo">“'+esc(brief)+'”</button>';
-  }
-  return '<p class="pet-bubble pet-advice" data-mood="'+mood+'">'+esc(text)+'</p>';
+  if(voiceVisit?.profile!==stateKey)beginMascotVoice();
+  if(voiceVisit.closed||Date.now()>=voiceVisit.until||$('.reading-focus'))return '';
+  const q=activeMascotQuote(Date.now()),message=q?.text||advice;
+  if(!message)return '';
+  const brief=q&&message.length>116?message.slice(0,114).trimEnd()+'…':message;
+  const content=q?'<p>“'+esc(brief)+'”</p><button class="voice-more" type="button" data-act="quote-open">Ver mais</button>':'<p>'+esc(brief)+'</p>';
+  return '<div class="pet-bubble '+(q?'pet-quote':'pet-advice')+'" data-mood="'+mood+'">'+content
+    +'<button type="button" class="voice-dismiss" data-act="voice-dismiss" aria-label="Fechar diálogo">×</button></div>';
 }
 function scheduleMascotVoice(){
   clearTimeout(voiceTimer);
-  const q=readingQuote,root=$('#pet-voice');
-  if(tab!=='today'||!root||q?.profile!==stateKey||S.petQuotes===false)return;
-  const now=Date.now(),remains=q.shown?q.shown+16000-now:q.due-now;
-  if(!S.books.some(b=>b.id===q.bookId)||q.shown&&remains<=0)return;
+  const q=readingQuote,root=$('#pet-voice'),visit=voiceVisit;
+  if(tab!=='today'||!root||!visit||visit.closed)return;
+  const now=Date.now();
+  if(now>=visit.until){stopMascotVoice();return;}
+  const pending=q?.profile===stateKey&&S.petQuotes!==false&&S.books.some(b=>b.id===q.bookId)&&!q.shown;
+  const next=pending?Math.min(visit.until-now,Math.max(1500,q.due-now)):visit.until-now;
   voiceTimer=setTimeout(()=>{
-    if(tab!=='today'||!root.isConnected||q!==readingQuote)return;
+    if(tab!=='today'||!root.isConnected||visit!==voiceVisit)return;
     const j=readingJourney(),mins=minutesOn(today()),mood=journeyMood(j,mins);
     root.innerHTML=mascotVoiceHtml(journeySuggestion(j,mins,mood),mood);
     scheduleMascotVoice();
-  },Math.max(1500,remains));
+  },next);
 }
 function quoteDetails(){
   const b=S.books.find(x=>x.id===readingQuote?.bookId);
@@ -104,6 +114,7 @@ document.addEventListener('click',e=>{
   const a=e.target.closest('[data-act]');if(!a)return;
   if(a.dataset.act==='pet-touch')openMascot();
   if(a.dataset.act==='quote-open')quoteDetails();
+  if(a.dataset.act==='voice-dismiss')stopMascotVoice();
   if(a.dataset.act==='quote-share'&&readingQuote?.profile===stateKey){
     const b=S.books.find(x=>x.id===readingQuote.bookId);if(b)shareReadingCard(b,readingQuote.text);
   }
@@ -112,7 +123,19 @@ document.addEventListener('click',e=>{
   }
 });
 const interactiveRender=render;
-render=function(){interactiveRender();trackTimer();scheduleMascotVoice();queueMascotBlink();};
+render=function(){
+  const changed=shownTab!==tab;
+  if(tab==='today'&&(changed||voiceVisit?.profile!==stateKey)&&!timerPanelOpen)beginMascotVoice();
+  interactiveRender();trackTimer();renderTimerClock();scheduleMascotVoice();queueMascotBlink();
+  if(changed&&shownTab!==null&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+    $('#view')?.animate?.([{opacity:.62,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:170,easing:'ease-out'});
+  }
+  shownTab=tab;
+};
+function startApp(){
+  applyTema();render();mountReadingTimer();
+  document.documentElement?.classList.remove('booting');
+}
 
 function shareText(book,quote){
   const name=book.title+(book.author?' — '+book.author:'');

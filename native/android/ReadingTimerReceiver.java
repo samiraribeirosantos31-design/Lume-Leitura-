@@ -16,6 +16,7 @@ import org.json.JSONObject;
 public class ReadingTimerReceiver extends BroadcastReceiver {
     static final int NOTIFICATION = 1927;
     static final String OPEN_SESSION = "com.lume.leitura.OPEN_READING_SESSION";
+    static final String RESUME_SESSION = "com.lume.leitura.RESUME_READING_SESSION";
     private static final String CHANNEL = "lume-reading-timer-v1";
     private static final String PREFS = "lume-reading-timer";
 
@@ -83,8 +84,14 @@ public class ReadingTimerReceiver extends BroadcastReceiver {
                 .setShowWhen(running).setUsesChronometer(running);
         if (running) notification.setWhen(session.optLong("t0") - accumulated);
         if (!finished) {
-            notification.addAction(0, running ? "Pausar" : "Continuar", action(context, running ? "pause" : "resume", session, 71))
-                    .addAction(0, "Encerrar", action(context, "stop", session, 72));
+            if (running) {
+                notification.addAction(0, "Pausar", action(context, "pause", session, 71));
+            } else {
+                Intent resume = new Intent(open).putExtra(RESUME_SESSION, true);
+                PendingIntent resumeApp = PendingIntent.getActivity(context, 73, resume, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                notification.addAction(0, "Retomar leitura", resumeApp);
+            }
+            notification.addAction(0, "Encerrar", action(context, "stop", session, 72));
         }
         notification.addAction(0, finished ? "Registrar" : "Abrir sessão", openApp);
         try { manager.notify(NOTIFICATION, notification.build()); }
@@ -104,8 +111,6 @@ public class ReadingTimerReceiver extends BroadcastReceiver {
                 if (action.equals("com.lume.leitura.timer.pause") && running) {
                     session.put("acc", session.optLong("acc") + Math.max(0, now - session.optLong("t0")));
                     session.put("running", false);
-                } else if (action.equals("com.lume.leitura.timer.resume") && !running) {
-                    session.put("t0", now).put("running", true);
                 } else if (action.equals("com.lume.leitura.timer.stop")) {
                     if (running) session.put("acc", session.optLong("acc") + Math.max(0, now - session.optLong("t0")));
                     session.put("running", false).put("fin", true);
