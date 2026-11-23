@@ -30,7 +30,7 @@ const knownQuotes=[
   {id:'bras-marcela',title:'Memórias Póstumas de Brás Cubas',author:'Machado de Assis',text:'Marcela amou-me durante quinze meses e onze contos de réis'}
 ];
 const quoteNorm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-let readingQuote=null, lastQuote=null, quoteEffect=0;
+let readingQuote=null,lastQuote=null,voiceTimer=0,blinkTimer=0;
 function bookQuotes(book){
   const title=quoteNorm(book.title),author=quoteNorm(book.author);
   return [
@@ -40,33 +40,60 @@ function bookQuotes(book){
       .map(q=>({...q,origin:'Clássico em domínio público',bookId:book.id}))
   ];
 }
-function blinkForQuote(){
+function queueMascotBlink(){
+  clearTimeout(blinkTimer);
   const image=$('.pet-touch');
-  const journey=readingJourney(),st=journeyStage(journey);
-  if(!image||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||st===0||journey.started<=3)return;
-  const prior=image.innerHTML,effect=++quoteEffect;
-  image.innerHTML=pet(st,'blink');
-  setTimeout(()=>{if(effect===quoteEffect&&image.isConnected)image.innerHTML=pet(st,'speak');},190);
-  setTimeout(()=>{if(effect===quoteEffect&&image.isConnected)image.innerHTML=prior;},720);
+  if(tab!=='today'||!image||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+  blinkTimer=setTimeout(()=>{
+    const j=readingJourney(),stage=journeyStage(j);
+    if(image.isConnected&&tab==='today'&&!document.hidden&&!$('.sheet')&&stage>0){
+      const mood=journeyMood(j,minutesOn(today()));
+      image.innerHTML=pet(stage,'blink');
+      setTimeout(()=>{if(image.isConnected)image.innerHTML=pet(stage,mood);},160);
+    }
+    queueMascotBlink();
+  },16000+Math.round(Math.random()*16000));
 }
 function openingReadingQuote(bookId){
-  const book=S.books.find(b=>b.id===bookId&&!b.done);
+  const book=S.books.find(b=>b.id===bookId);
   if(!book||S.petQuotes===false)return;
   const options=bookQuotes(book).filter(q=>q.id!==lastQuote);
-  if(!options.length||Math.random()>.65)return;
+  if(!options.length)return;
+  if(readingQuote?.profile===stateKey&&(!readingQuote.shown||Date.now()-readingQuote.shown<18000))return;
   const item=options[Math.floor(Math.random()*options.length)];
-  lastQuote=item.id;readingQuote={...item,profile:stateKey};
-  if(tab==='today'){render();blinkForQuote();}
+  lastQuote=item.id;
+  readingQuote={...item,profile:stateKey,due:Date.now()+22000,shown:0};
+  scheduleMascotVoice();
 }
-const quoteToday=viewToday;
-viewToday=function(){
-  const html=quoteToday();
-  if(S.petQuotes===false||readingQuote?.profile!==stateKey)return html;
-  const book=S.books.find(b=>b.id===readingQuote.bookId&&!b.done);
-  if(!book)return html;
-  const bubble='<button class="pet-quote" data-act="quote-open">“'+esc(readingQuote.text)+'”<small>'+esc(book.title)+' · Compartilhar</small></button>';
-  return html.replace('</section>',bubble+'</section>');
-};
+function activeMascotQuote(now){
+  const q=readingQuote;
+  if(S.petQuotes===false||q?.profile!==stateKey||now<q.due||!S.books.some(b=>b.id===q.bookId))return null;
+  if(!q.shown&&!document.hidden&&!$('.sheet'))q.shown=now;
+  return q.shown&&now<q.shown+16000?q:null;
+}
+function mascotVoiceHtml(advice,mood){
+  const q=activeMascotQuote(Date.now());
+  const text=q?.text||advice;
+  if(!text)return '';
+  if(q){
+    const brief=text.length>58?text.slice(0,56).trimEnd()+'…':text;
+    return '<button class="pet-bubble pet-quote" type="button" data-act="quote-open" aria-label="Ler trecho completo">“'+esc(brief)+'”</button>';
+  }
+  return '<p class="pet-bubble pet-advice" data-mood="'+mood+'">'+esc(text)+'</p>';
+}
+function scheduleMascotVoice(){
+  clearTimeout(voiceTimer);
+  const q=readingQuote,root=$('#pet-voice');
+  if(tab!=='today'||!root||q?.profile!==stateKey||S.petQuotes===false)return;
+  const now=Date.now(),remains=q.shown?q.shown+16000-now:q.due-now;
+  if(!S.books.some(b=>b.id===q.bookId)||q.shown&&remains<=0)return;
+  voiceTimer=setTimeout(()=>{
+    if(tab!=='today'||!root.isConnected||q!==readingQuote)return;
+    const j=readingJourney(),mins=minutesOn(today()),mood=journeyMood(j,mins);
+    root.innerHTML=mascotVoiceHtml(journeySuggestion(j,mins,mood),mood);
+    scheduleMascotVoice();
+  },Math.max(1500,remains));
+}
 function quoteDetails(){
   const b=S.books.find(x=>x.id===readingQuote?.bookId);
   if(!b||readingQuote?.profile!==stateKey)return;
@@ -76,7 +103,7 @@ function quoteDetails(){
 document.addEventListener('click',e=>{
   const a=e.target.closest('[data-act]');if(!a)return;
   if(a.dataset.act==='pet-touch')openMascot();
-  if(a.dataset.act==='quote-open'){blinkForQuote();quoteDetails();}
+  if(a.dataset.act==='quote-open')quoteDetails();
   if(a.dataset.act==='quote-share'&&readingQuote?.profile===stateKey){
     const b=S.books.find(x=>x.id===readingQuote.bookId);if(b)shareReadingCard(b,readingQuote.text);
   }
@@ -85,7 +112,7 @@ document.addEventListener('click',e=>{
   }
 });
 const interactiveRender=render;
-render=function(){interactiveRender();trackTimer();};
+render=function(){interactiveRender();trackTimer();scheduleMascotVoice();queueMascotBlink();};
 
 function shareText(book,quote){
   const name=book.title+(book.author?' — '+book.author:'');

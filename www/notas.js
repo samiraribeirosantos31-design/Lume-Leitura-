@@ -93,6 +93,7 @@ function saveNote(){
   const page=pg>0?pg:null;
   if(ntKind==='marcador'){if(!page)return ntFail('Informe a página do marcador.');}
   else if(!text)return ntFail(ntKind==='destaque'?'Escreva o trecho destacado.':'Escreva a anotação antes de salvar.');
+  const earnedBefore=new Set(unlockedIds()),previousNotes=S.notes.map(n=>({...n})),seen=S.seen;
   if(ntEdit){
     const n=S.notes.find(x=>x.id===ntEdit);
     if(n){n.text=text;n.bookId=bid;n.page=page;n.type=ntKind;if(ntKind==='destaque')n.col=ntCol;delete n.demo;}
@@ -101,8 +102,13 @@ function saveNote(){
     if(ntKind==='destaque')n.col=ntCol;
     S.notes.push(n);
   }
+  const unlocked=achs().filter(a=>a.ok&&!earnedBefore.has(a.id)&&!(seen||[]).includes(a.id));
+  if(unlocked.length&&!S.demo)S.seen=[...new Set([...(seen||[]),...unlocked.map(a=>a.id)])];
+  if(!save()){S.notes=previousNotes;S.seen=seen;return ntFail('Não foi possível salvar. Tente novamente.');}
   ntFilter=bid||'_gen';ntType='all';ntEdit=null;ntAsk=null;
-  save();closeSheet();tab='notes';render();toast([KIND[ntKind]+' salvo']);
+  closeSheet();tab='notes';render();
+  if(unlocked.length&&!S.demo){const j=readingJourney();announceReadingReward(j,j,unlocked);}
+  else toast([KIND[ntKind]+' salvo']);
 }
 
 const _eyebrow=eyebrow;

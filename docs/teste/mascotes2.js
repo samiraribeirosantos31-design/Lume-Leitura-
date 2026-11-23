@@ -15,11 +15,12 @@ AN.onca={fur:'#E3AA3C',belly:'#FFE8B5',feet:'#C98A1F',
     +'<circle cx="86" cy="150" r="3.5" fill="#3A2A12"/><circle cx="114" cy="150" r="3.5" fill="#3A2A12"/>',
   face:()=>'<ellipse cx="100" cy="131" rx="27" ry="19" fill="#FFF1D2"/>'+nose('#3A2A12')+mouth('#3A2A12')};
 
-function petBorboleta(stage,mood){
+function petBorboleta(stage,mood,gear={}){
   let o=svgHead(stage);
   if(stage===4)o+=aura();
   o+='<g class="bob"><ellipse cx="100" cy="182" rx="40" ry="7" fill="var(--shadow)"/>';
   o+='<g'+(stage===1?' transform="translate(100 182) scale(.82) translate(-100 -182)"':'')+'>';
+  o+=(gear.back||'');
   o+='<ellipse cx="56" cy="86" rx="46" ry="58" transform="rotate(-24 56 86)" fill="var(--pet)"/><ellipse cx="144" cy="86" rx="46" ry="58" transform="rotate(24 144 86)" fill="var(--pet)"/>'
    +'<ellipse cx="68" cy="140" rx="32" ry="38" transform="rotate(28 68 140)" fill="var(--accent)"/><ellipse cx="132" cy="140" rx="32" ry="38" transform="rotate(-28 132 140)" fill="var(--accent)"/>';
   if(stage>=2)o+='<circle cx="46" cy="76" r="11" fill="var(--pet-belly)"/><circle cx="154" cy="76" r="11" fill="var(--pet-belly)"/><circle cx="66" cy="148" r="7" fill="var(--pet-belly)"/><circle cx="134" cy="148" r="7" fill="var(--pet-belly)"/>';
@@ -33,13 +34,15 @@ function petBorboleta(stage,mood){
     if(mood==='sleepy')o+='<path d="M84 82a7 7 0 0 1 14 0Z" fill="#3B2F3A"/><path d="M102 82a7 7 0 0 1 14 0Z" fill="#3B2F3A"/>';
   }
   o+=mood==='speak'?'<ellipse cx="100" cy="94" rx="4" ry="6" fill="#FFFFFF"/>':'<path d="M94 94Q100 99 106 94" '+stk('#FFFFFF',3)+'/>';
-  if(stage>=3)o+='<circle cx="91" cy="82" r="10" '+stk('#FFFFFF',3)+'/><circle cx="109" cy="82" r="10" '+stk('#FFFFFF',3)+'/>';
-  if(stage===3)o+='<path d="M73 67L100 53L127 67L100 80Z" fill="var(--pet-deep)"/><path d="M122 69v15" stroke="#f8c54d" stroke-width="3"/>';
-  if(stage>=4)o+='<path d="M73 66L81 44L100 56L119 44L127 66Z" fill="#f8c54d" stroke="#704923" stroke-width="3"/>';
-  return o+'</g></g></svg>';
+  if(stage>=3&&!gear.eyes)o+='<circle cx="91" cy="82" r="10" '+stk('#FFFFFF',3)+'/><circle cx="109" cy="82" r="10" '+stk('#FFFFFF',3)+'/>';
+  if(stage===3&&!gear.head)o+='<path d="M73 67L100 53L127 67L100 80Z" fill="var(--pet-deep)"/><path d="M122 69v15" stroke="#f8c54d" stroke-width="3"/>';
+  if(stage>=4&&!gear.head)o+='<path d="M73 66L81 44L100 56L119 44L127 66Z" fill="#f8c54d" stroke="#704923" stroke-width="3"/>';
+  return o+(gear.front||'')+'</g></g></svg>';
 }
-function petOf(kind,stage,mood){
-  if(stage===0||kind==='coruja'||!kind||(kind!=='borboleta'&&!AN[kind]))return _petCoruja(stage,mood);
-  return kind==='borboleta'?petBorboleta(stage,mood):petAnimal(kind,stage,mood);
+function petOf(kind,stage,mood,gear={}){
+  if(stage===0||kind==='coruja'||!kind)return _petCoruja(stage,mood,gear);
+  if(typeof FANTASTIC!=='undefined'&&FANTASTIC.includes(kind))return fantasticMascot(kind,stage,mood,gear);
+  if(kind==='borboleta')return petBorboleta(stage,mood,gear);
+  return AN[kind]?petAnimal(kind,stage,mood,gear):_petCoruja(stage,mood,gear);
 }
 pet=function(stage,mood){return petOf(S.mascote||'coruja',stage,mood);};

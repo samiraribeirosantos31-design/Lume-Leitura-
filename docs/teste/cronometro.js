@@ -137,7 +137,7 @@ function openTimerLog(){
   const t=S.timer;
   if(!t||!S.books.some(b=>b.id===t.bookId&&!b.done))return;
   openLog(t.bookId,{timer:true});
-  fillReadingMinutes(Math.min(600,Math.max(1,Math.round(tmMs()/60000))));
+  preview();
   const hint=$('#f-hint');if(hint)hint.textContent+=' Tempo cronometrado: '+fmtT(tmMs())+'.';
 }
 function startReadingTimer(bookId){

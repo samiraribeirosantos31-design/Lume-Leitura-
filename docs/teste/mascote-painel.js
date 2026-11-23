@@ -4,6 +4,11 @@ const PET_GEAR=[
   ['bow','Gravata',0,'M49 49 23 34v32l26-15h2l26 15V34L51 49Z'],
   ['star','Estrela',0,'m50 20 9 19 21 3-15 15 4 22-19-10-19 10 4-22-15-15 21-3Z'],
   ['scarf','Lenço',0,'M21 30q29 21 58 0v17L68 56l10 25-17-4-7-20q-18 2-33-10Z'],
+  ['cap','Boné',0,'M17 61q1-30 29-34 32 2 34 34ZM18 61q38-8 66 1l8 7-74-2Z'],
+  ['felt','Chapéu clássico',5,'M24 57l7-23 16 4 17-7 12 26ZM11 62q31-10 78 0-3 12-78 0Z'],
+  ['glasses','Óculos redondos',5,'M43 54a14 14 0 1 1-28 0 14 14 0 0 1 28 0Zm42 0a14 14 0 1 1-28 0 14 14 0 0 1 28 0ZM43 54h14'],
+  ['scholar','Chapéu de estudioso',10,'M14 39 50 23l36 16-36 17ZM28 47v19l22 9 22-9V47m10-5v24'],
+  ['wizard','Chapéu de mago',20,'M24 63 46 28l32-9-12 18 10 27M13 66q35-6 74 0v9H13Z'],
   ['cape','Capa',20,'m35 24 15 12 15-12 17 50q-32 14-64 0Z'],
   ['satchel','Bolsa',20,'M22 32h56v43H22Zm13 0V21h30v11M22 51h56m-28-7v13'],
   ['crown','Tiara solar',30,'m21 31 15 17 14-28 14 28 15-17-8 41H29Z'],
@@ -12,19 +17,9 @@ const PET_GEAR=[
 ];
 const gearIcons=([,name,,path])=>'<svg viewBox="0 0 100 100" aria-hidden="true"><path d="'+path+'" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>'+name+'</span>';
 function mascotArt(kind,stage,mood,accessory,level=1){
-  const art=petOf(kind,stage,mood);
+  const art=petOf(kind,stage,mood,mascotGarment(kind,accessory,level));
   if(stage===0)return art;
-  const accents={
-    bow:'<path d="m87 136-18-8v20l18-7m26-5 18-8v20l-18-7" fill="#f9b9cd"/><circle cx="100" cy="139" r="8" fill="#df6c8e"/>',
-    star:'<path d="m152 55 5 10 11 2-8 8 2 11-10-5-10 5 2-11-8-8 11-2Z" fill="#ffd477" stroke="#7c4c27" stroke-width="2"/>',
-    scarf:'<path d="M54 129q46 24 92 0v12q-45 26-92 1Zm74 15h13l8 24-15-4Z" fill="var(--pet-deep)" stroke="var(--page)" stroke-width="2"/>',
-    cape:'<path d="M46 130q3 32 13 44l-32 3Zm108 0q-3 32-13 44l32 3Z" fill="#AE597B" stroke="#723E6D" stroke-width="3"/>',
-    satchel:'<path d="M138 130l22 23-8 23-23-6Z" fill="#A26847" stroke="#583C38" stroke-width="3"/><path d="M135 148l23 6" stroke="#FFD278" stroke-width="3"/>',
-    crown:'<path d="m71 55-6-22 19 10 16-22 16 22 19-10-6 22Z" fill="#FFE194" stroke="#A76A2D" stroke-width="3"/>',
-    orb:'<circle cx="166" cy="142" r="13" fill="#ABACFB" stroke="#51499D" stroke-width="3"/><path d="M168 134q-10 5-3 14-11-2-9-8 2-7 12-6Z" fill="#FFF0BF"/>',
-    wings:'<path d="M49 159Q9 163 12 112q12 17 34 20m105 27q40 4 37-47-12 17-34 20" fill="#C8E7FF" stroke="#736DB1" stroke-width="3"/>'
-  };
-  return art.replace(/^(<svg[^>]*>)/,'$1'+journeyAura(level)).replace('</svg>',(accents[accessory]||'')+'</svg>');
+  return art.replace(/^(<svg[^>]*>)/,'$1'+journeyAura(level));
 }
 function canUseMascot(kind,level){
   return MASC.some(([id,,required=1])=>kind===id&&level>=required);
@@ -50,11 +45,11 @@ function petTiles(items,level){
 function petSecretHtml(j){
   return '<p class="hint">'+(j.level<50?'A trilha até o nível 50 foi revelada.':'A trilha até o nível 70 foi revelada.')+'</p>'
     +petTiles(MASC.filter(([, ,level=1])=>level>=40&&level<=j.ceiling),j.level)
-    +(j.level>=50?'<div class="pet-challenge"><h3>Deus da leitura</h3><p>Comece 100 livros e conclua pelo menos 30. Registre as leituras para avançar.</p>'
+    +(j.level>=50?'<div class="pet-challenge"><h3>Deus da leitura</h3><p>Chegue ao nível 69, comece 100 livros e conclua pelo menos 30.</p>'
       +'<div><b>'+Math.min(100,j.started)+' / 100</b> iniciados <b>'+Math.min(30,j.finished)+' / 30</b> concluídos</div></div>':'');
 }
 function petEditorBody(j){
-  const stage=Math.max(2,journeyStage(j));
+  const stage=Math.max(1,journeyStage(j));
   const selected=MASC.find(m=>m[0]===petDraft.kind);
   const tabs=[['species','Mascotes'],['gear','Acessórios'],...(j.level>=30?[['secret','Trilha secreta']]:[])];
   let items=petTiles(MASC.filter(m=>(m[2]||1)===1),j.level)+'<h3>Mascotes fantásticos</h3>'+petTiles(MASC.filter(m=>m[2]===10),j.level);
@@ -89,7 +84,7 @@ document.addEventListener('click',e=>{
   else if(act==='pet-panel'&&(['species','gear'].includes(a.dataset.v)||(a.dataset.v==='secret'&&j.level>=30)))petDraft.panel=a.dataset.v;
   else return;
   controls.innerHTML=petEditorBody(j);
-  $('.sheet-mascot')?.querySelector('[data-act="'+act+'"][aria-pressed="true"]')?.focus({preventScroll:true});
+  if(e.detail===0)$('[data-act="'+act+'"][aria-pressed="true"]',controls)?.focus({preventScroll:true});
 });
 document.addEventListener('submit',function(e){
   if(e.target.id!=='form-mascot'||!petDraft)return;

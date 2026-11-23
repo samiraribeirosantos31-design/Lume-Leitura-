@@ -66,11 +66,11 @@ function longest(){
   return best;
 }
 function achs(){
-  const m=sum(S.logs,'min'),pg=sum(S.logs,'pages'),done=S.books.filter(b=>b.done).length,ls=longest(),pts=points();
+  const m=sum(S.logs,'min'),pg=sum(S.logs,'pages'),ls=longest(),journey=readingJourney(),done=journey.finished;
   const list=[
     {id:'first',icon:'i-book',name:'Primeira leitura',desc:'Registre sua primeira leitura.',cur:Math.min(S.logs.length,1),t:1},
     {id:'m15',icon:'i-today',name:'Primeiros 15 minutos',desc:'Some 15 minutos de leitura.',cur:m,t:15},
-    {id:'petMax',icon:'i-star',name:'Mascote lendário',desc:'Some 350 pontos de leitura.',cur:pts,t:CUTS[4]},
+    {id:'petMax',icon:'i-star',name:'Mascote lendário',desc:'Some 350 XP de evolução.',cur:journey.score,t:CUTS[4]},
     {id:'s3',icon:'i-flame',name:'Três dias firmes',desc:'Bata a meta 3 dias seguidos.',cur:ls,t:3},
     {id:'s7',icon:'i-flame',name:'Semana inteira',desc:'Bata a meta 7 dias seguidos.',cur:ls,t:7},
     {id:'s30',icon:'i-flame',name:'Mês de leitura',desc:'Bata a meta 30 dias seguidos.',cur:ls,t:30},
@@ -80,14 +80,14 @@ function achs(){
     {id:'p1000',icon:'i-book',name:'1.000 páginas',desc:'Leia 1.000 páginas no total.',cur:pg,t:1000},
     {id:'b1',icon:'i-check',name:'Primeiro livro',desc:'Termine um livro.',cur:done,t:1},
     {id:'b5',icon:'i-books',name:'Estante cheia',desc:'Termine 5 livros.',cur:done,t:5},
-    {id:'pet3',icon:'i-star',name:'Sábio da estante',desc:'Leve '+S.petName+' ao estágio Sábio.',cur:pts,t:CUTS[3]}
+    {id:'pet3',icon:'i-star',name:'Sábio da estante',desc:'Leve '+S.petName+' ao estágio Sábio.',cur:journey.score,t:CUTS[3]}
   ];
-  list.push(...journeyAchievements(readingJourney()));
+  list.push(...journeyAchievements(journey),...extraReadingAchievements(journey));
   return list.map(a=>({id:a.id,icon:a.icon,name:a.name,desc:a.desc,t:a.t,ok:(a.cur>=a.t||(S.seen||[]).includes(a.id)),cur:(S.seen||[]).includes(a.id)?a.t:Math.min(a.cur,a.t)}));
 }
 const unlockedIds=()=>achs().filter(a=>a.ok).map(a=>a.id);
 
-function pet(stage,mood){
+function pet(stage,mood,gear={}){
   const sp=(x,y,s)=>'<path d="M0-9Q0 0 9 0Q0 0 0 9Q0 0-9 0Q0 0 0-9Z" transform="translate('+x+' '+y+') scale('+s+')" fill="var(--accent)"/>';
   let o='<svg viewBox="0 0 200 200" role="img" aria-label="'+esc(S.petName)+', estágio '+STAGES[stage]+'">';
   if(stage===0){
@@ -103,6 +103,7 @@ function pet(stage,mood){
     o+='<circle cx="100" cy="112" r="92" fill="var(--accent)" opacity=".16"/>'+sp(26,40,1.2)+sp(176,58,1)+sp(160,18,.8)+sp(40,150,.7);
   }
   o+='<g class="bob"><ellipse cx="100" cy="182" rx="54" ry="8" fill="var(--shadow)"/>';
+  o+=(gear.back||'');
   o+='<ellipse cx="38" cy="130" rx="10" ry="19" transform="rotate(14 38 130)" fill="var(--pet-deep)"/><ellipse cx="162" cy="130" rx="10" ry="19" transform="rotate(-14 162 130)" fill="var(--pet-deep)"/>';
   if(stage>=2)o+='<path d="M56 72L62 42L86 62Z" fill="var(--pet-deep)"/><path d="M144 72L138 42L114 62Z" fill="var(--pet-deep)"/>';
   o+='<ellipse cx="100" cy="116" rx="64" ry="60" fill="var(--pet)"/><ellipse cx="100" cy="138" rx="40" ry="34" fill="var(--pet-belly)"/>';
@@ -117,11 +118,12 @@ function pet(stage,mood){
      +'<circle cx="83" cy="102" r="2.5" fill="var(--eye)"/><circle cx="127" cy="102" r="2.5" fill="var(--eye)"/>';
     if(mood==='sleepy')o+='<path d="M62 105a16 16 0 0 1 32 0Z" fill="var(--pet)"/><path d="M106 105a16 16 0 0 1 32 0Z" fill="var(--pet)"/><path d="M62 105h32M106 105h32" stroke="var(--pet-deep)" stroke-width="3" stroke-linecap="round"/>';
   }
-  if(stage>=3)o+='<circle cx="78" cy="104" r="19" fill="none" stroke="var(--pupil)" stroke-width="4"/><circle cx="122" cy="104" r="19" fill="none" stroke="var(--pupil)" stroke-width="4"/><path d="M97 104h6" stroke="var(--pupil)" stroke-width="4"/>';
+  if(stage>=3&&!gear.eyes)o+='<circle cx="78" cy="104" r="19" fill="none" stroke="var(--pupil)" stroke-width="4"/><circle cx="122" cy="104" r="19" fill="none" stroke="var(--pupil)" stroke-width="4"/><path d="M97 104h6" stroke="var(--pupil)" stroke-width="4"/>';
   o+='<path d="M93 118L107 118L100 129Z" fill="var(--accent)"/><circle cx="60" cy="124" r="6" fill="var(--blush)" opacity=".55"/><circle cx="140" cy="124" r="6" fill="var(--blush)" opacity=".55"/>';
   if(mood==='speak')o+='<ellipse cx="100" cy="132" rx="7" ry="5" fill="var(--pupil)"/>';
-  if(stage===3)o+='<path d="M52 58L100 35L148 58L100 76Z" fill="var(--pet-deep)"/><path d="M144 59v23" stroke="var(--accent)" stroke-width="5"/>';
-  if(stage===4)o+='<path d="M54 32L78 45L100 17L122 45L146 32L137 67H63Z" fill="#f8c54d" stroke="#704923" stroke-width="3"/>';
+  if(stage===3&&!gear.head)o+='<path d="M52 58L100 35L148 58L100 76Z" fill="var(--pet-deep)"/><path d="M144 59v23" stroke="var(--accent)" stroke-width="5"/>';
+  if(stage===4&&!gear.head)o+='<path d="M54 32L78 45L100 17L122 45L146 32L137 67H63Z" fill="#f8c54d" stroke="#704923" stroke-width="3"/>';
+  o+=(gear.front||'');
   if(stage>=2)o+='<path d="M58 150Q80 142 100 152Q120 142 142 150L142 178Q120 170 100 180Q80 170 58 178Z" fill="var(--accent)"/>'
    +'<path d="M64 152Q82 146 98 154L98 173Q82 166 64 172Z" fill="var(--page)"/><path d="M136 152Q118 146 102 154L102 173Q118 166 136 172Z" fill="var(--page)"/>'
    +'<path d="M70 160Q82 156 92 160M70 166Q82 162 92 166M108 160Q118 156 130 160M108 166Q118 162 130 166" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round"/>';

@@ -1,0 +1,43 @@
+html{-webkit-tap-highlight-color:transparent}
+button,[data-act],[data-tab],summary{-webkit-user-select:none;user-select:none}
+button svg,[data-hold] img{-webkit-user-drag:none}
+button,summary{touch-action:manipulation}
+@media(prefers-reduced-motion:no-preference){
+  .mc:active,.pet-touch:active,.chip:active,.settings-item:active{transform:scale(.98)}
+}
+
+.pet-card.journey-card{grid-template-columns:minmax(0,1fr);gap:8px;justify-items:stretch;text-align:start}
+.pet-card.journey-card h2{justify-content:start}
+.pet-actor{position:relative;display:flex;align-items:center;min-height:110px;animation:bob 4.3s ease-in-out infinite;isolation:isolate}
+.journey-card .pet-actor .pet{width:49%;max-width:162px;min-width:88px}
+.pet-actor .bob{animation:none}
+.pet-voice{position:absolute;inset-inline-start:min(49%,157px);inset-inline-end:0;top:61%;transform:translateY(-50%);pointer-events:none;z-index:2}
+.pet-voice:empty{display:none}
+.pet-voice .pet-bubble{position:relative;display:block;width:fit-content;max-width:100%;margin:0;padding:9px 11px;border-radius:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:.82rem;line-height:1.35;overflow-wrap:anywhere;text-align:start;box-shadow:0 3px 10px var(--shadow)}
+.pet-voice .pet-bubble::before{content:"";position:absolute;top:50%;left:0;bottom:auto;width:10px;height:10px;border:0;border-left:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface);transform:translate(-54%,-50%) rotate(45deg)}
+.pet-voice .pet-quote{color:var(--pet-text);pointer-events:auto;min-height:44px}
+.pet-voice .pet-advice[data-mood=happy]{border-inline-start:1px solid var(--line)}
+.journey-summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:8px}
+.journey-summary .eyebrow,.journey-summary .xp,.journey-summary .journey-next{grid-column:1/-1}
+.journey-summary .stage{max-width:100%;justify-self:end;margin:0;text-align:center}
+.journey-summary .xp{margin-top:10px}
+.journey-summary .xp-l{grid-column:1/-1}
+.pet-editor-preview{grid-template-columns:minmax(88px,125px) minmax(0,1fr)}
+.pet-editor-preview svg{max-height:125px}
+
+#duration-picker{border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--bg)}
+#duration-picker summary{min-height:48px;padding:12px 0;color:var(--ink);font-weight:700;cursor:pointer}
+#duration-picker[open]{padding-bottom:10px}
+#duration-picker label{margin-top:3px}
+#duration-picker select{background:var(--surface);padding:0 10px}
+#duration-picker .btn{margin-top:10px}
+.reading-measured{margin:12px 0;padding:10px 12px;border-radius:12px;background:var(--pet-wash);font-size:.9rem}
+
+#reward-pop{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:65;width:min(calc(100% - 24px),430px);pointer-events:none}
+.reward-notice{pointer-events:auto;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:12px;border:1px solid var(--line);border-radius:17px;background:var(--surface);color:var(--ink);box-shadow:0 8px 25px var(--shadow);animation:reward-in .2s ease-out}
+.reward-medal{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--pet-wash);color:var(--pet-text)}
+.reward-notice p{font-size:.84rem;color:var(--ink-2);margin:2px 0 6px;overflow-wrap:anywhere}
+.reward-notice .btn{padding:0 9px;min-height:42px;font-size:.82rem}
+.reward-notice .reward-close{min-width:42px;color:var(--ink);background:var(--bg);font-size:1.25rem}
+@keyframes reward-in{from{transform:translateY(-8px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(prefers-reduced-motion:reduce){.pet-actor,.reward-notice{animation:none}}

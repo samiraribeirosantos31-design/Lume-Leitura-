@@ -17,21 +17,6 @@ AN.macaco={fur:'#AD6D48',belly:'#F7D69B',feet:'#794D37',lid:'#F8CFAC',
 
 const creatureWings=(outer,inner)=>'<path d="M58 149C21 143 9 97 16 63q19 25 55 45m71 41c37-6 49-52 42-86q-19 25-55 45" fill="'+outer+'"/><path d="M55 134Q31 113 27 92m118 42q24-21 28-42" '+stk(inner,4)+'/>';
 const diamond=(x,y,fill)=>'<path d="M0-11 7 0 0 11-7 0Z" transform="translate('+x+' '+y+')" fill="'+fill+'"/>';
-AN.dragao={fur:'#427E76',belly:'#B4E6BB',feet:'#2D605B',
-  back:()=>creatureWings('#346562','#A5D9A4')+tri('53 77 42 38 78 66','#E6BE62')+tri('147 77 158 38 122 66','#E6BE62'),
-  mark:()=>diamond(100,77,'#B4E6BB')+diamond(55,118,'#99DAB1')+diamond(145,118,'#99DAB1'),
-  face:()=>'<ellipse cx="100" cy="129" rx="26" ry="16" fill="#B4E6BB"/><circle cx="92" cy="123" r="3" fill="#285651"/><circle cx="108" cy="123" r="3" fill="#285651"/>'+mouth('#285651')};
-AN.fenix={fur:'#E76A4E',belly:'#FFD197',feet:'#A7473B',
-  back:()=>'<path d="M58 157Q7 151 14 90q14 19 32 18Q12 62 28 35q18 29 48 55m66 67q51-6 44-67-14 19-32 18 34-46 18-73-18 29-48 55M86 64q1-42 34-48-15 22-5 47Z" fill="#B84B45"/>',
-  mark:()=>'<path d="M42 109q24-22 51-11L56 119m102-10q-24-22-51-11l37 21" fill="#FFD197"/>',
-  face:()=>'<path d="M91 119q10-8 19 0l-10 16Z" fill="#FFDE6C" stroke="#6D4237" stroke-width="2"/>'};
-AN.grifo={fur:'#B38350',belly:'#FFF0BC',feet:'#986944',lid:'#FFF0BC',
-  back:()=>creatureWings('#725746','#E9B970')+tri('51 81 50 39 86 70','#E4B780')+tri('149 81 150 39 114 70','#E4B780'),
-  mark:()=>'<path d="M39 110q9-35 61-36 52 1 61 36l-18 19-10-4-15 22-18-11-19 11-14-22-10 4Z" fill="#FFF0BC"/>',
-  face:()=>'<path d="M89 122q22-20 28 1l-10 14-2-12Z" fill="#D8873C" stroke="#754832" stroke-width="2"/>'};
-AN.fantasma={fur:'#C5BBEA',belly:'#F0E7FF',feet:'transparent',
-  back:()=>'<path d="M50 102q-17 5-28 30-4 7 2 11 4 2 13-6m113-35q17 5 28 30 4 7-2 11-4 2-13-6M53 150l-9 22q-3 8 6 9l24-8q12 17 27 1 15 15 28-1l21 8q10 2 8-9l-9-21Z" fill="#A99ADB"/>',
-  mark:()=>diamond(100,77,'#755EAC'),face:()=>'<ellipse cx="100" cy="133" rx="6" ry="8" fill="#695091"/>'};
 AN.cervo={fur:'#7E9AAE',belly:'#ECF1FC',feet:'#465E7F',
   back:()=>'<path d="M70 77Q37 61 37 22m16 43-24-7M53 51l8-22m69 48q33-16 33-55m-16 43 24-7m-24-7-8-22" '+stk('#526A91',7)+'/>'+tri('45 83 35 65 70 69','#7E9AAE')+tri('155 83 165 65 130 69','#7E9AAE'),
   mark:()=>'<path d="M108 68a13 13 0 1 0 3 16q-17 1-3-16Z" fill="#ECF1FC"/>',face:()=>nose('#465E7F')+mouth('#465E7F')};

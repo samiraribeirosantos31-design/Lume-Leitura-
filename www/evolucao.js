@@ -12,25 +12,39 @@ function bookIdentity(book){
   return 'book:'+normalize(book.title)+'|'+normalize(book.author);
 }
 
+const DAILY_TIMER_XP=180;
+function timerXPRemaining(){
+  const minutes=S.logs.reduce((sum,l)=>l.source==='timer'&&l.date===today()?sum+(Number(l.timerMin)||0):sum,0);
+  return Math.max(0,DAILY_TIMER_XP-minutes);
+}
 function readingJourney(){
+
   const books=new Map(S.books.map(book=>[book.id,book]));
-  const works=new Map();
-  let first='',last='',score=0,latest=null;
-  for(const log of S.logs){
-    if(!(log.min>0||log.pages>0))continue;
-    if(S.demo&&!log.work&&['b1','b2','b3'].includes(log.bookId))continue;
+  const works=new Map(),legacyWorks=new Map(),timerDays=new Map();
+  const logs=S.logs.filter(log=>(log.min>0||log.pages>0)&&(!S.demo||log.work||!['b1','b2','b3'].includes(log.bookId)));
+  const manualCap=levelThresholds[10];
+  let first='',last='',latest=null;
+  let score=logs.reduce((sum,log)=>!['timer','manual'].includes(log.source)?sum+(Number(log.pts)||0):sum,0);
+  for(const log of logs){
     const book=books.get(log.bookId);
     const key=log.work||(book?bookIdentity(book):'legacy:'+log.bookId);
     const complete=log.finished===true||(log.finished==null&&log.pts-log.min-log.pages>=50);
     works.set(key,Boolean(works.get(key)||complete));
-    score+=Number(log.pts)||0;
+    if(log.source==='timer'){
+      const used=timerDays.get(log.date)||0;
+      const xp=Math.min(DAILY_TIMER_XP-used,Math.max(0,Number(log.timerMin)||0));
+      timerDays.set(log.date,used+xp);
+      score+=xp;
+    }else if(log.source==='manual'){
+      score+=Math.min(Math.max(0,manualCap-score),Math.max(0,Number(log.pts)||0));
+    }else legacyWorks.set(key,Boolean(legacyWorks.get(key)||complete));
     if(!first||log.date<first)first=log.date;
     if(!last||log.date>=last){last=log.date;latest=log;}
   }
   const started=works.size, finished=[...works.values()].filter(Boolean).length;
   let level=1;
   while(level<69&&levelThresholds[level+1]<=score)level++;
-  if(started>=100&&finished>=30)level=70;
+  if(started>=100&&finished>=30&&(level===69||legacyWorks.size>=100&&[...legacyWorks.values()].filter(Boolean).length>=30))level=70;
   return {started,finished,first,last,latest,score,level,ceiling:level<30?30:level<50?50:70};
 }
 
@@ -68,16 +82,16 @@ function journeyMood(j,mins){
 function journeySuggestion(j,mins,mood){
   if(!j.started)return '';
   if(mood==='happy')return ['Você bateu a meta de hoje!','Seu tempo de leitura rendeu a meta de hoje.'][new Date().getDate()%2];
-  if(mood==='sleepy')return 'Que tal voltar com uma página quando tiver um tempinho?';
+  if(mood==='sleepy')return 'Uma página já vale a volta.';
   const book=S.books.find(b=>b.id===j.latest?.bookId&&!b.done&&b.page<b.total);
-  if(book&&new Date().getDate()%2===0)return 'Que tal retomar “'+book.title+'”'+(book.page?' da página '+book.page:'')+'?';
-  if(mins>0&&mins<S.goal)return 'Se quiser seguir hoje, faltam '+(S.goal-mins)+' min para sua meta.';
-  return book?'Se tiver alguns minutos, leia só mais uma página.':'Quando escolher sua próxima leitura, experimente começar com cinco minutos.';
+  if(book&&new Date().getDate()%2===0)return book.page?'Que tal retomar da pág. '+book.page+'?':'Vamos retomar a leitura?';
+  if(mins>0&&mins<S.goal)return 'Faltam '+(S.goal-mins)+' min para a meta!';
+  return book?'Vamos de mais uma página?':'Que tal ler por cinco minutos?';
 }
 
 function nextJourneyReward(j){
   if(j.level<10)return 'Nível 10 · Mascotes fantásticos';
-  if(j.level<20)return 'Nível 20 · Roupas e acessórios';
+  if(j.level<20)return 'Roupas e acessórios · nível 20';
   if(j.level<30)return 'Nível 30 · Divino';
   if(j.level<50)return 'Trilha secreta · até o nível 50';
   if(j.level<70)return 'Trilha secreta · até o nível 70';
@@ -88,7 +102,7 @@ function journeyProgress(j){
   if(j.level===70)return {percent:100,label:'Nível máximo'};
   if(j.level===69)return {percent:Math.min(99,Math.round(50*Math.min(1,j.started/100)+50*Math.min(1,j.finished/30))),label:'Rumo ao nível 70'};
   const low=levelThresholds[j.level], high=levelThresholds[j.level+1];
-  return {percent:Math.max(0,Math.min(100,Math.floor(100*(j.score-low)/(high-low)))),label:nf(j.score)+' / '+nf(high)+' pts'};
+  return {percent:Math.max(0,Math.min(100,Math.floor(100*(j.score-low)/(high-low)))),label:nf(j.score)+' / '+nf(high)+' XP'};
 }
 
 function journeyAchievements(j){

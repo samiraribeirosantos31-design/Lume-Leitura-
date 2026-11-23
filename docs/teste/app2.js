@@ -21,11 +21,13 @@ function viewToday(){
   }).join('');
   const days=w.map(x=>'<span class="'+(x.today?'t':'')+'">'+(x.today?'hoje':x.d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.',''))+'</span>').join('');
   return ''
-   +'<section class="pet-card journey-card"><button class="pet pet-touch" type="button" data-act="pet-touch" aria-label="Personalizar mascote">'+pet(petStage,mood)+'</button><div class="journey-summary"><p class="eyebrow">Nível '+journey.level+' de '+journey.ceiling+'</p>'
+   +'<section class="pet-card journey-card"><div class="pet-actor"><button class="pet pet-touch" type="button" data-act="pet-touch" aria-label="Personalizar mascote">'+pet(petStage,mood)+'</button>'
+   +'<div id="pet-voice" class="pet-voice">'+(typeof mascotVoiceHtml==='function'?mascotVoiceHtml(suggestion,mood):'')+'</div></div>'
+   +'<div class="journey-summary"><p class="eyebrow">Nível '+journey.level+' de '+journey.ceiling+'</p>'
    +'<h2>'+esc(S.petName)+'</h2><p class="stage">'+(petStage===0?'Ovo · ':'')+journeyRank(journey.level)+'</p>'
    +'<div class="xp" role="progressbar" aria-label="Progresso do mascote" aria-valuenow="'+progress.percent+'"><i style="width:'+progress.percent+'%"></i></div><p class="xp-l num">'+progress.label+'</p>'
-   +'<p class="journey-next">'+nextJourneyReward(journey)+'</p></div>'
-   +(suggestion?'<p class="pet-advice" data-mood="'+mood+'">'+esc(suggestion)+'</p>':'<p class="journey-next journey-intro">Registre uma leitura para chocar o ovo.</p>')
+   +'<p class="journey-next">'+nextJourneyReward(journey)+'</p>'+(journey.level===10?'<p class="journey-next">Cronometre suas sessões para seguir evoluindo.</p>':'')+'</div>'
+   +(journey.started?'':'<p class="journey-next journey-intro">Registre uma leitura para chocar o ovo.</p>')
    +(journey.level>=30?'<button class="btn btn-soft journey-link" type="button" data-act="pet-secret">Ver trilha secreta</button>':'')+'</section>'
    +'<section class="card goal"><div class="ring-w"><svg viewBox="0 0 120 120" role="img" aria-label="'+mins+' de '+S.goal+' minutos hoje">'
    +'<circle cx="60" cy="60" r="50" fill="none" stroke="var(--surface-2)" stroke-width="12"/>'

@@ -14,6 +14,7 @@ function openSettings(section=''){
       +'<button type="button" data-act="step" data-d="5" aria-label="Aumentar 5 minutos">+</button></div>'
       +'<p class="err" id="f-err" role="alert"></p><button class="btn btn-primary btn-block" type="submit">Salvar meta</button></form>'
       +lemHtml()+(readingPlugin()?settingsItem('tm-alerts','Cronômetro nas notificações',S.timerAlerts===false?'Desativado':'Ativado'):'')
+      +(rewardPlugin()?settingsItem('reward-alerts','Notificações de conquistas',S.achievementAlerts===false?'Desativadas':'Usar permissão do Android'):'')
       +settingsItem('quote-toggle','Trechos do mascote',S.petQuotes===false?'Desativados':'Ativados')+back;
   }else if(section==='updates'){
     body=window.lumeUpdatesSettings()+back;

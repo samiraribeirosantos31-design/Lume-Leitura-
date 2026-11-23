@@ -9,14 +9,14 @@ function harness(options={}){
   return {innerHTML:'',textContent:'',style:{},dataset:{},classList:{toggle(){},add(){},remove(){}},setAttribute(){},getAttribute(){},
    focus(){},select(){},remove(){},insertAdjacentHTML(){},appendChild(e){if(e.id)elements.set(e.id,e)},insertBefore(e){if(e.id)elements.set(e.id,e)}};
  }
- ['view','title','eyebrow','sheet-root','toast','wipe-zone','up-msg'].forEach(id=>elements.set(id,element()));
+ ['view','title','eyebrow','sheet-root','toast','wipe-zone','up-msg','reward-pop'].forEach(id=>elements.set(id,element()));
  const parent=element();elements.forEach(e=>e.parentNode=parent);
  const doc={hidden:false,activeElement:null,body:element(),head:element(),
   createElement:element,getElementById:id=>elements.get(id)||null,
   querySelector:s=>s.startsWith('#')?elements.get(s.slice(1))||null:null,querySelectorAll:()=>[],
   addEventListener:(e,f)=>(events[e]??=[]).push(f)};
  let callbacks={},calls=0;
- const notifications={checkPermissions:async()=>({display:options.permission||'granted'}),requestPermissions:async()=>({display:options.permission||'granted'}),schedule:async n=>scheduled.push(...n.notifications),cancel:async()=>{},addListener:(event,cb)=>{callbacks[event]=cb;}};
+ const notifications={checkPermissions:async()=>({display:options.permission||'granted'}),requestPermissions:async()=>({display:options.permission||'granted'}),createChannel:async()=>{},schedule:async n=>scheduled.push(...n.notifications),cancel:async()=>{},addListener:(event,cb)=>{const prior=callbacks[event];callbacks[event]=async e=>{if(prior)await prior(e);return cb(e);};}};
  const ctx={document:doc,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},console,Date,Math,JSON,Number,String,Array,Object,Promise,AbortController,
   setInterval(){},setTimeout:()=>1,clearTimeout(){},navigator:{onLine:!options.offline},location:{protocol:'http:'},
   addEventListener(){},scrollTo(){},open:u=>opened.push(u),
@@ -228,8 +228,8 @@ test('cronômetro central é único, modo noturno restaura brilho e a notificaç
 
 test('confirmar o registro salva o tempo e a página juntos',()=>{
  const h=harness();
- h.evaluate("S.books=[{id:'b',title:'Meu livro',page:10,total:100}]; S.timer={id:'t',bookId:'b',fin:true};");
- for(const [id,value] of Object.entries({'f-book':'b','f-hours':'0','f-min':'12','f-page':'24'}))h.elements.set(id,{value});
+ h.evaluate("S.books=[{id:'b',title:'Meu livro',page:10,total:100}]; S.timer={id:'t',bookId:'b',fin:true,acc:720000};");
+ for(const [id,value] of Object.entries({'f-book':'b','timer-session':'t','f-hours':'9','f-min':'59','f-page':'24'}))h.elements.set(id,{value});
  h.elements.set('f-err',{textContent:''});
  h.evaluate('const workingSave=save;save=()=>false;submitLog()');
  assert.equal(h.evaluate('S.timer.id'),'t');
@@ -254,9 +254,9 @@ test('mascote sugere após a primeira leitura, reage após a quarta e dá tempo 
  const h=harness();
  h.evaluate(`S.books=Array.from({length:4},(_,i)=>({id:'r'+i,title:'Livro '+i,author:'Autora'}));
   const logFor=(i,date,mins)=>({bookId:'r'+i,date,min:mins,pts:mins,pages:0});`);
- assert.doesNotMatch(h.evaluate('viewToday()'),/class="pet-advice"/);
+ assert.doesNotMatch(h.evaluate('viewToday()'),/pet-bubble pet-advice/);
  h.evaluate('S.logs=[logFor(0,today(),25)]');
- assert.match(h.evaluate('viewToday()'),/class="pet-advice" data-mood="normal"/);
+ assert.match(h.evaluate('viewToday()'),/class="pet-bubble pet-advice" data-mood="normal"/);
  h.evaluate('S.logs.push(logFor(1,today(),1),logFor(2,today(),1))');
  assert.equal(h.evaluate('journeyMood(readingJourney(),27)'),'normal');
  h.evaluate('S.logs.push(logFor(3,today(),1))');
@@ -329,4 +329,53 @@ test('dados de demonstração não evoluem o mascote e Ajustes abre com leitura 
  assert.match(sheet.innerHTML,/up-check/);
  await h.click('settings-section',{v:'data'});
  assert.match(sheet.innerHTML,/demo-limpar/);
+});
+
+test('XP antigo é preservado e registros manuais só avançam até o nível 10',()=>{
+ const h=harness();
+ h.evaluate(`const step=(source,date=today(),timerMin=50)=>({source,date,bookId:'a',min:200,pages:200,pts:400,timerMin});`);
+ h.evaluate("S.logs=[step('manual'),step('manual')]");
+ assert.equal(h.evaluate('readingJourney().level'),10);
+ assert.equal(h.evaluate('readingJourney().score'),160);
+ h.evaluate("S.logs.push(step('timer'),step('timer',today(),200),step('manual'))");
+ assert.equal(h.evaluate('readingJourney().score'),340);
+ h.evaluate("S.logs=[step('timer',today(),180),step('manual')]");
+ assert.equal(h.evaluate('readingJourney().score'),180);
+ h.evaluate("S.logs=[step(undefined),step('manual')]");
+ assert.equal(h.evaluate('readingJourney().score'),400);
+ h.evaluate("S.logs=Array.from({length:100},(_,i)=>({...step('manual'),bookId:'b'+i,finished:i<30}))");
+ assert.equal(h.evaluate('readingJourney().level'),10);
+});
+
+test('o balão alterna entre sugestão e citação e os retratos usam roupas por espécie',()=>{
+ const h=harness();
+ h.evaluate("S.books=[{id:'b',title:'Dom Casmurro',author:'Machado de Assis'}];openingReadingQuote('b');");
+ assert.match(h.evaluate("mascotVoiceHtml('Vamos ler?','normal')"),/pet-advice/);
+ h.evaluate('readingQuote.due=0');
+ const bubble=h.evaluate("mascotVoiceHtml('Vamos ler?','normal')");
+ assert.match(bubble,/pet-quote/);
+ assert.doesNotMatch(bubble,/Vamos ler/);
+ h.evaluate('readingQuote.shown=1');
+ assert.match(h.evaluate("mascotVoiceHtml('Vamos ler?','normal')"),/pet-advice/);
+ assert.match(h.evaluate("mascotArt('leao',2,'normal','bow',8)"),/data-wardrobe="bow" transform="translate\(100 145\)/);
+ assert.match(h.evaluate("mascotArt('fantasma',3,'normal','bow',10)"),/data-creature="fantasma".*data-wardrobe="bow" transform="translate\(103 119\)/);
+ assert.notEqual(h.evaluate("mascotArt('dragao',3,'normal','none',10)"),h.evaluate("mascotArt('dragao',3,'normal','none',50)"));
+});
+
+test('uma sessão agrupa novos marcos no app e no Android e respeita a permissão',async()=>{
+ for(const permission of ['granted','denied']){
+   const h=harness({native:true,permission});
+   h.evaluate("S.books=[{id:'b',title:'Livro',page:0,total:300}];");
+   for(const [id,value] of Object.entries({'f-book':'b','f-hours':'0','f-min':'20','f-page':'1'}))h.elements.set(id,{value});
+   h.evaluate('submitLog()');
+   await settle();
+   assert.match(h.elements.get('reward-pop').innerHTML,/subiu de nível/);
+   const sent=()=>h.scheduled.filter(n=>n.extra?.kind==='lume-achievement');
+   assert.equal(sent().length,permission==='granted'?1:0);
+   h.evaluate('render()');
+   await settle();
+   assert.equal(sent().length,permission==='granted'?1:0);
+   await h.click('reward-view');
+   assert.equal(h.evaluate('tab'),'ach');
+ }
 });

@@ -44,17 +44,38 @@ function openLog(id,{timer=false}={}){
   const book=open.find(b=>b.id===sel);
   openSheet('<h2 id="sh-t" tabindex="-1">Registrar leitura</h2><form id="form-log" novalidate>'
    +'<label for="f-book">Livro</label><select id="f-book">'+open.map(b=>'<option value="'+b.id+'"'+(b.id===sel?' selected':'')+'>'+esc(b.title)+'</option>').join('')+'</select>'
-   +'<fieldset class="reading-duration"><legend>Tempo de leitura</legend><div class="chips">'+[10,15,20,30,45].map(v=>'<button type="button" class="chip" data-act="chip" data-v="'+v+'" aria-pressed="false">'+v+' min</button>').join('')+'</div>'
-   +'<div class="duration-parts"><label>Horas<input id="f-hours" type="number" inputmode="numeric" min="0" max="10" step="1" placeholder="0"></label>'
-   +'<label>Minutos<input id="f-min" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="00"></label></div></fieldset>'
+   +readingDuration(timer)
    +'<label for="f-page">Parei na página</label><input id="f-page" type="number" inputmode="numeric" min="0" value="'+book.page+'">'
    +'<p class="hint" id="f-hint">Você estava na página '+book.page+' de '+book.total+'.</p>'
    +'<p class="preview num" id="f-prev">Informe horas e minutos para ver seus pontos.</p>'
    +'<p class="err" id="f-err" role="alert"></p>'
-   +'<div class="row"><button class="btn btn-primary" type="submit">Salvar leitura</button><button class="btn btn-ghost" type="button" data-act="close">Cancelar</button></div></form>',timer?'sh-t':'f-min',timer?'sheet-center':'');
+   +'<div class="row"><button class="btn btn-primary" type="submit">Salvar leitura</button><button class="btn btn-ghost" type="button" data-act="close">Cancelar</button></div></form>','sh-t','sheet-center');
 }
 function curBook(){const el=$('#f-book');return el?S.books.find(b=>b.id===el.value):null;}
+function readingDuration(timed){
+  if(timed)return '<input type="hidden" id="timer-session" value="'+esc(S.timer.id)+'">'
+    +'<p class="reading-measured"><b>'+readingDurationLabel(measuredMinutes())+'</b> · Cronometrado no Lume</p>';
+  const opts=(n,unit)=>Array.from({length:n},(_,v)=>'<option value="'+v+'">'+v+' '+unit+'</option>').join('');
+  return '<fieldset class="reading-duration"><legend>Tempo de leitura</legend>'
+    +'<div class="chips">'+[10,15,20,30,45,60].map(v=>'<button type="button" class="chip" data-act="chip" data-v="'+v+'" aria-pressed="false">'+readingDurationLabel(v)+'</button>').join('')+'</div>'
+    +'<details id="duration-picker"><summary id="duration-value">Escolher duração</summary><div class="duration-parts">'
+    +'<label>Horas<select id="f-hours">'+opts(11,'h')+'</select></label><label>Minutos<select id="f-min">'+opts(60,'min')+'</select></label>'
+    +'</div><button type="button" class="btn btn-soft btn-block" data-act="duration-done">Confirmar duração</button></details>'
+    +'<p class="hint">Registros manuais ajudam o mascote até o nível 10.</p></fieldset>';
+}
+function readingDurationLabel(total){
+  const h=Math.floor(total/60),m=total%60;
+  return (h?h+' h'+(m?' ':''):'')+(m||!h?m+' min':'');
+}
+function pendingLogTimer(book=curBook()){
+  const shown=$('#timer-session'),t=S.timer;
+  return shown&&t?.fin&&shown.value===t.id&&book?.id===t.bookId?t:null;
+}
+function measuredMinutes(){
+  return Math.min(600,Math.max(1,Math.round((S.timer?.acc||0)/60000)));
+}
 function formReadingMinutes(){
+  if($('#timer-session'))return pendingLogTimer()?measuredMinutes():NaN;
   const h=Number($('#f-hours')?.value||0),m=Number($('#f-min')?.value||0);
   return Number.isInteger(h)&&Number.isInteger(m)&&h>=0&&m>=0&&m<60?h*60+m:NaN;
 }
@@ -66,43 +87,45 @@ function preview(){
   const b=curBook();if(!b)return;
   const min=formReadingMinutes(),pg=parseInt($('#f-page').value,10),el=$('#f-prev');
   $$('[data-act=chip]').forEach(c=>c.setAttribute('aria-pressed',String(Number(c.dataset.v)===min)));
-  if(!(min>0)||min>600){el.textContent='Informe horas e minutos para ver seus pontos.';return;}
+  const label=$('#duration-value');
+  if(label)label.textContent=min>0&&min<=600?readingDurationLabel(min)+' · Alterar':'Escolher duração';
+  if(!el)return;
+  if(!(min>0)||min>600){el.textContent='Escolha uma duração de até 10 horas.';return;}
   const p=isNaN(pg)?b.page:pg;
   if(p<b.page||p>b.total){el.textContent='';return;}
   const c=calc(b,min,p);
-  el.textContent='+'+c.pts+' pontos · '+c.pages+' '+pl(c.pages,'página lida','páginas lidas')+(c.goal?' · bônus da meta +10':'')+(c.fin?' · livro concluído +50':'');
+  const j=readingJourney(),t=pendingLogTimer(b);
+  const xp=t?Math.min(timerXPRemaining(),Math.floor(t.acc/60000)):Math.min(c.pts,Math.max(0,levelThresholds[10]-j.score));
+  el.textContent=c.pages+' '+pl(c.pages,'página lida','páginas lidas')+' · +'+xp+' XP para o mascote'+(c.fin?' · livro concluído':'');
 }
 function fail(msg){const e=$('#f-err');if(e)e.textContent=msg;}
 
 function submitLog(){
   const b=curBook(),min=formReadingMinutes();let pg=parseInt($('#f-page').value,10);
   if(!b)return fail('Escolha um livro.');
-  if(!(min>0)||min>600)return fail('Informe de 1 minuto a 10 horas. Use até 59 no campo Minutos.');
+  if(!(min>0)||min>600)return fail('Escolha uma duração de 1 minuto a 10 horas.');
   if(isNaN(pg))pg=b.page;
   if(pg<b.page)return fail('Você já estava na página '+b.page+'. Informe essa página ou uma maior.');
   if(pg>b.total)return fail('Este livro tem '+b.total+' páginas. Informe uma página até '+b.total+'.');
-  const before=readingJourney(),c=calc(b,min,pg);
+  const before=readingJourney(), earnedBefore=new Set(unlockedIds()),c=calc(b,min,pg);
   const previous={page:b.page,done:b.done,seen:S.seen,timer:S.timer};
-  const timed=S.timer?.fin&&S.timer.bookId===b.id;
-  S.logs.push({id:uid(),date:today(),bookId:b.id,min:min,pages:c.pages,pts:c.pts,work:bookIdentity(b),finished:c.fin,...(timed?{t:1}:{})});
+  const timed=pendingLogTimer(b);
+  S.logs.push({id:uid(),date:today(),bookId:b.id,min:min,pages:c.pages,pts:c.pts,work:bookIdentity(b),finished:c.fin,source:timed?'timer':'manual',...(timed?{t:1,timerMin:Math.min(600,Math.floor(timed.acc/60000))}:{})});
   if(timed)S.timer=null;
   b.page=pg;if(c.fin)b.done=true;
-  const after=readingJourney(),now=unlockedIds(),seen=S.seen||[],fresh=achs().filter(a=>a.ok&&seen.indexOf(a.id)<0);
+  const after=readingJourney(),now=unlockedIds(),seen=S.seen||[],fresh=achs().filter(a=>a.ok&&!earnedBefore.has(a.id)&&!seen.includes(a.id));
   if(!S.demo)S.seen=now;
   if(!save()){
     S.logs.pop();b.page=previous.page;b.done=previous.done;S.seen=previous.seen;S.timer=previous.timer;
     return fail('Não foi possível salvar. Sua sessão continua disponível.');
   }
   closeSheet();render();
-  const lines=['+'+c.pts+' pontos'];
+  const lines=['Leitura salva · '+readingDurationLabel(min)];
   if(c.goal)lines.push('Meta de hoje batida');
-  if(c.fin)lines.push('Livro concluído: '+b.title);
-  if(journeyStage(before)===0&&journeyStage(after)>0)lines.push(S.petName+' saiu do ovo!');
-  if(after.level>before.level)lines.push(S.petName+' chegou ao nível '+after.level+' · '+journeyRank(after.level));
-  if(before.level<30&&after.level>=30)lines.push('A trilha secreta foi revelada!');
-  if(before.level<50&&after.level>=50)lines.push('Uma nova trilha foi revelada · até o nível 70!');
-  fresh.forEach(a=>lines.push('Conquista: '+a.name));
-  toast(lines);
+  if(c.fin)lines.push('Livro concluído · '+b.title);
+  const leveled=after.level>before.level;
+  if((leveled||fresh.length)&&!S.demo)announceReadingReward(before,after,fresh);
+  else toast(lines);
 }
 function submitAdd(){
   const title=$('#f-title').value.trim(),author=$('#f-author').value.trim(),total=parseInt($('#f-total').value,10);let start=parseInt($('#f-start').value,10);
@@ -148,6 +171,7 @@ document.addEventListener('click',function(e){
     case 'settings':openSettings();break;
     case 'close':closeSheet();break;
     case 'chip':fillReadingMinutes(Number(a.dataset.v));break;
+    case 'duration-done':{const picker=$('#duration-picker');if(picker){picker.open=false;$('#duration-value')?.focus();}break;}
     case 'step':{const f=$('#f-goal');const v=(parseInt(f.value,10)||S.goal)+parseInt(a.dataset.d,10);f.value=Math.min(240,Math.max(5,v));break;}
     case 'rm':{
       const b=S.books.find(x=>x.id===id);if(b)confirmAction('Remover da estante?','“'+b.title+'” será removido. Suas leituras e notas já registradas serão preservadas.','rm-yes','Remover livro',b.id);break;
@@ -172,6 +196,7 @@ document.addEventListener('submit',function(e){
 });
 document.addEventListener('input',function(e){if(['f-hours','f-min','f-page'].includes(e.target.id))preview();});
 document.addEventListener('change',function(e){
+  if(['f-hours','f-min'].includes(e.target.id)){preview();return;}
   if(e.target.id!=='f-book')return;
   const b=curBook();if(!b)return;
   $('#f-page').value=b.page;$('#f-hint').textContent='Você estava na página '+b.page+' de '+b.total+'.';preview();
